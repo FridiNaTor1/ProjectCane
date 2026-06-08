@@ -33,6 +33,10 @@ To compile the project, use the instructions below based on your desired target:
    - `blot.frag`
    - `glob.vert`
    - `glob.frag`
+   - `geom.vert`
+   - `geom.frag`
+   - `dysh.vert`
+   - `dysh.frag`
    - `screen.vert`
    - `screen.frag`
 2. In **Solution Explorer**, right-click on `Sly1-Proto`
