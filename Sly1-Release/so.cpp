@@ -1,4 +1,5 @@
 #include "so.h"
+#include "proxy.h"
 
 SO* NewSo()
 {
@@ -98,8 +99,6 @@ void CloneSo(SO* pso, SO* psoBase)
 	pso->ipso = psoBase->ipso;
 	pso->posComLocal = psoBase->posComLocal;
 	pso->psoPhysHook = psoBase->psoPhysHook;
-	pso->geomCameraLocal = psoBase->geomCameraLocal;
-	pso->geomCameraWorld = psoBase->geomCameraWorld;
 	pso->bspcCamera = psoBase->bspcCamera;
 	pso->cmk = psoBase->cmk;
 	pso->egk = psoBase->egk;
@@ -128,6 +127,14 @@ void CloneSo(SO* pso, SO* psoBase)
 	pso->fGenSpliceTouchEvents = psoBase->fGenSpliceTouchEvents;
 	pso->pstso = psoBase->pstso;
 
+	if ((pso->geomWorld).cpos != 0) {
+		CloneGeom(&psoBase->geomWorld, nullptr, &pso->geomWorld);
+	}
+
+	if ((pso->geomCameraWorld).cpos != 0) {
+		CloneGeom(&psoBase->geomCameraWorld, nullptr, &pso->geomCameraWorld);
+	}
+
 	CloneAlo(pso, psoBase);
 }
 
@@ -142,11 +149,24 @@ void SetSoParent(SO* pso, ALO* paloParent)
 void ApplySoProxy(SO* pso, PROXY* pproxyApply)
 {
 	ApplyAloProxy(pso, pproxyApply);
+
+	/*glm::mat3 &mat = pproxyApply->xf.mat;
+
+	glm::vec3 normalForce  = mat * pso->constrForce.normal;
+	glm::vec3 normalTorque = mat * pso->constrTorque.normal;
+
+	SetSoConstraints(pso, pso->constrForce.ct, &normalForce, pso->constrTorque.ct, &normalTorque);*/
 }
 
 void UpdateSoXfWorldHierarchy(SO* pso)
 {
 	UpdateAloXfWorldHierarchy(pso);
+
+	glm::vec3 pos = pso->xf.posWorld;
+	glm::mat3 mat = pso->xf.matWorld;
+
+	UpdateGeomWorld(&pso->geomLocal, &pso->geomWorld, pos, mat);
+	UpdateGeomWorld(&pso->geomCameraLocal, &pso->geomCameraWorld, pos, mat);
 }
 
 void UpdateSoXfWorld(SO* pso)
@@ -156,8 +176,17 @@ void UpdateSoXfWorld(SO* pso)
 
 void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis)
 {
-	*(unsigned long*)&pso->bitfield = *(unsigned long*)&pso->bitfield & 0xfffffffdffffffff | ((long)(char)pbis->U8Read() & 1U) << 0x21;
+	pso->fFixedPhys = pbis->U8Read() != 0;
 	ReadGeom(&pso->geomLocal, pbis);
+
+	pso->sRadiusSelf = pso->geomLocal.sRadius;
+	pso->sRadiusAll  = pso->geomLocal.sRadius;
+
+	if (!pso->fFixedPhys)
+		CloneGeom(&pso->geomLocal, nullptr, &pso->geomWorld);
+	else
+		pso->geomWorld = pso->geomLocal;
+
 	ReadBspc(&pso->geomWorld, &pso->bspc, pbis);
 
 	pso->m = pbis->F32Read();
@@ -189,6 +218,12 @@ void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis)
 	}
 
 	ReadGeom(&pso->geomCameraLocal, pbis);
+
+	if (!pso->fFixedPhys)
+		CloneGeom(&pso->geomCameraLocal, nullptr, &pso->geomCameraWorld);
+	else
+		pso->geomCameraWorld = pso->geomCameraLocal;
+
 	ReadBspc(&pso->geomCameraWorld, &pso->bspcCamera, pbis);
 
 	LoadAloFromBrx(pso, pbis);
@@ -213,6 +248,35 @@ void RotateSoToMat(SO* pso, glm::mat3& pmat)
 void UpdateSo(SO* pso, float dt)
 {
 	UpdateAlo(pso, dt);
+}
+
+void FreezeSo(SO* pso, int fFreeze)
+{
+	if (fFreeze == 0)
+	{
+		FreezeAlo(pso, 0);
+
+		//SetSoConstraints(pso, pso->frz.ctForce, nullptr, pso->frz.ctTorque, nullptr);
+	}
+	else
+	{
+		// Save current constraint modes.
+		pso->frz.ctForce  = pso->constrForce.ct;
+		pso->frz.ctTorque = pso->constrTorque.ct;
+
+		//// Lock movement/rotation while frozen.
+		//SetSoConstraints(pso, CT_Locked, nullptr, CT_Locked, nullptr);
+
+		//// Clear accumulated velocity deltas.
+		pso->xf.dw = glm::vec3{};
+		pso->xf.dv = glm::vec3{};
+
+		//// Remove active STSO state while frozen.
+		//FreeSwStsoList(pso->psw, pso->pstso);
+		pso->pstso = nullptr;
+
+		FreezeAlo(pso, 1);
+	}
 }
 
 void RenderSoSelf(SO* pso, CM* pcm, RO* pro)

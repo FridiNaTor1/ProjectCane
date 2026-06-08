@@ -136,8 +136,6 @@ void RecalcCm(CM *pcm)
 
 void BuildProjectionMatrix(float fov, float aspectRatio, float near, float far, glm::mat4 &pmat)
 {
-	far = 10000000000.0f;
-	
 	pmat = glm::perspective(fov, aspectRatio, near, far);
 }
 
@@ -297,10 +295,10 @@ void* GetCmRgbaFog(CM* pcm)
 
 void SetCmRgbaFog(CM* pcm, RGBA prgbaFog)
 {
-	float R = prgbaFog.bRed   / 255.0;
-	float G = prgbaFog.bGreen / 255.0;
-	float B = prgbaFog.bBlue  / 255.0;
-	float A = prgbaFog.bAlpha / 255.0;
+	float R = prgbaFog.bRed    / 255.0;
+	float G = prgbaFog.bGreen  / 255.0;
+	float B = prgbaFog.bBlue   / 255.0;
+	float A = (prgbaFog.bAlpha / 255.0) * 2;
 
 	pcm->rgbaFog = glm::vec4(R, G, B, A);
 	RecalcCm(pcm);
@@ -359,7 +357,7 @@ void UpdateCmMat4(CM* pcm)
 	CombineEyeLookAtProj(pcm->pos, pcm->mat, pcm->matProj, pcm->matWorldToClip);
 
 	// Optional: also keep clip->world (PS2 does this)
-	//pcm->matClipToWorld = glm::inverse(pcm->matWorldToClip);
+	pcm->matClipToWorld = glm::inverse(pcm->matWorldToClip);
 
 	// Frustum from worldToClip (your existing extractor)
 	ExtractFrustumPlanes(pcm->matWorldToClip, &pcm->frustum);
@@ -367,21 +365,10 @@ void UpdateCmMat4(CM* pcm)
 
 bool FInsideCmMrd(const CM* pcm, const glm::vec3& dpos, float sRadius, float sMRD, float& outAlpha)
 {
-	if (g_cmlk == CMLK_Grfzon)
-		sMRD = 1e10f;
-
 	float outer = sMRD * pcm->rMRDAdjust + sRadius;
 	float outerSq = outer * outer;
 
-	float distSq;
-	if (g_cmlk == CMLK_Mrd) {
-		glm::vec3 worldPos = pcm->pos + dpos;      // NOTE: dpos is cam-relative
-		glm::vec3 delta = worldPos - glm::vec3(0.0);  // lock point
-		distSq = glm::dot(delta, delta);
-	}
-	else {
-		distSq = glm::dot(dpos, dpos);             // plain camera-relative distance
-	}
+	float distSq = glm::dot(dpos, dpos);
 
 	if (distSq > outerSq)
 		return false;

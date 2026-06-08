@@ -1,13 +1,14 @@
 #pragma once
 #include "so.h"
-#include "shdanim.h"
+#include "scroller.h"
 
 class CNVO : public SO
 {
 	public:
-		float svBelt;
-		float svuAvg;
-		float svvAvg;
+
+	float svBelt;
+	float svuAvg;
+	float svvAvg;
 };
 
 CNVO*NewCnvo();

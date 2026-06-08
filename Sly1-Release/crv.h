@@ -1,5 +1,6 @@
 #pragma once
 #include "lo.h"
+#include "bez.h"
 
 enum CRVK
 {
@@ -39,7 +40,7 @@ struct CTCE
 
 struct CRVC : public CRV
 {
-public:
+	public:
 	std::vector <glm::vec3> mpicvdposIn;
 	std::vector <glm::vec3> mpicvdposOut;
 	CTCE ctce;
@@ -47,25 +48,29 @@ public:
 };
 
 std::shared_ptr <CRV> PcrvNew(CRVK crvk);
-void  LoadCrvlFromBrx(std::shared_ptr <CRVL> pcrvl, CBinaryInputStream* pbis);
-void  MeasureCrvl(std::shared_ptr <CRVL> pcrvl);
-float SMeasureApos(int cpos, std::vector<glm::vec3>& apos, std::vector <float>& mpiposs);
+void  LoadCrvlFromBrx(CRVL *pcrvl, CBinaryInputStream* pbis);
+void  ConvertCrvl(CRVL* pcrvl, glm::mat4* pmatSrc, glm::mat4* pmatDst);
+void  ConvertApos(int cpos, glm::vec3* apos, glm::mat4& pmatSrc, glm::mat4& pmatDst);
+void  MeasureCrvl(CRVL *pcrvl);
+float SMeasureApos(int cpos, glm::vec3* apos, float* mpiposs);
 
-void LoadCrvcFromBrx(std::shared_ptr <CRVC> pcrvc, CBinaryInputStream* pbis);
-void MeasureCrvc(std::shared_ptr <CRVC>);
-
-void DeletePcrv(CRVK crvk, CRV* pcrv);
+void LoadCrvcFromBrx(CRVC *pcrvc, CBinaryInputStream* pbis);
+void ConvertCrvc(CRVC* pcrvc, glm::mat4& pmatSrc, glm::mat4& pmatDst);
+void InvalidateCrvcCache(CRVC* pcrvc);
+void MeasureCrvc(CRVC* pcrvc);
 
 struct VTCRVL
 {
-	void (*pfnLoadCrvlFromBrx)(std::shared_ptr <CRVL>, CBinaryInputStream*) = LoadCrvlFromBrx;
-	void (*pfnMeasureCrvl)(std::shared_ptr <CRVL>) = MeasureCrvl;
+	void (*pfnLoadCrvlFromBrx)(CRVL*, CBinaryInputStream*) = LoadCrvlFromBrx;
+	void (*pfnConvertCrvl)(CRVL*, glm::mat4*, glm::mat4*) = ConvertCrvl;
+	void (*pfnMeasureCrvl)(CRVL*) = MeasureCrvl;
 };
 
 struct VTCRVC
 {
-	void (*pfnLoadCrvcFromBrx)(std::shared_ptr <CRVC>, CBinaryInputStream*) = LoadCrvcFromBrx;
-	void (*pfnMeasureCrvc)(std::shared_ptr <CRVC>) = MeasureCrvc;
+	void (*pfnLoadCrvcFromBrx)(CRVC*, CBinaryInputStream*) = LoadCrvcFromBrx;
+	void (*pfnConvertCrvc)(CRVC*, glm::mat4&, glm::mat4&) = ConvertCrvc;
+	void (*pfnMeasureCrvc)(CRVC*) = MeasureCrvc;
 };
 
 inline VTCRVL g_vtcrvl;

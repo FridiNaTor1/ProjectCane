@@ -101,10 +101,9 @@ int NRandInRange(int nLow, int nHigh)
 //return a random floating-point number in the given range
 float GRandInRange(float gLow, float gHigh)
 {
-	if (gLow != gHigh)
-	{
-		int nRand = rand();
-		return gLow + (gHigh - gLow) * (float)nRand * (float)0x30000000;
+	if (gLow != gHigh) {
+		int randomNum = rand();
+		gLow = gLow + (gHigh - gLow) * (float)randomNum * 4.656613e-10;
 	}
 	return gLow;
 }
@@ -220,6 +219,16 @@ float GTrunc(float param_1)
 		}
 	}
 	return param_1;
+}
+
+void PrescaleClq(CLQ* src, float ru, float du, CLQ* dst)
+{
+	if (src == nullptr || dst == nullptr)
+		return;
+
+	dst->g2 = src->g2 * ru * ru;
+	dst->g1 = (2.0f * src->g2 * ru * du) + (src->g1 * ru);
+	dst->g0 = (src->g2 * du * du) + (src->g1 * du) + src->g0;
 }
 
 float GModPositive(float gDividend, float gDivisor)

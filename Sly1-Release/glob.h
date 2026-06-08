@@ -2,9 +2,6 @@
 #include "bis.h"
 #include "gl.h"
 #include "util.h"
-// Glob is just another word for model.
-
-extern class CM* g_pcm;
 
 enum TWPS
 {
@@ -41,9 +38,16 @@ enum WEK
 enum WARPTYPE
 {
 	WARP_NONE = 0,
-	WARP_POS  = 1,
-	WARP_UV   = 2,
+	WARP_POS = 1,
+	WARP_UV = 2,
 	WARP_BOTH = 3
+};
+
+enum TRLK
+{
+	TRLK_Relight = 0,
+	TRLK_Baked = 1,
+	TRLK_Dynamic = 2
 };
 
 struct VERTICE
@@ -65,30 +69,23 @@ struct INDICE
 
 struct alignas(16) RO
 {
-	glm::mat4 model;       //  0 -  63
-	int       rko;         //  64
-	float     uAlpha;      //  68
-	float     uFog;        //  72
-	float     darken;      //  76
-	glm::vec2 uvOffsets;   //  80 -  87
-	int       _pad0;       //  88
-	int       _pad1;       //  92
-	int       warpType;    //  96
-	int       warpCmat;    // 100
-	int       warpCvtx;    // 104
-	int       _padWarp0;   // 108
-	int       _padWarp1;   // 112
-	int       _padWarp2;   // 116
-	int       _padWarp3;   // 120
-	int       _padWarp4;   // 124
-	glm::mat4 amatDpos[4]; // 128 - 383
-	glm::mat4 amatDuv[4];  // 384 - 639
-	int       fDynamic;    // 640
-	float     unSelfIllum; // 644
-	float     sRadius;     // 648
-	int       _pad2;       // 652
-	glm::vec4 posCenter;   // 656 - 671
-	float     uAlphaCelBorder; 
+	glm::mat4 model;         //   0 -  63
+	float     uAlpha;        //  64 -  67
+	float     uFog;          //  68 -  71
+	float     darken;        //  72 -  75
+	int32_t   grfglob;       //  76 -  79
+	int32_t   pad0;          //  80 -  83
+	int32_t   warpType;      //  84 -  87
+	int32_t   warpCmat;      //  88 -  91
+	int32_t   warpCvtx;      //  92 -  95
+	glm::mat4 amatDpos[4];   //  96 - 351
+	glm::mat4 amatDuv[4];    // 352 - 607
+	int32_t   fDynamic;      // 608 - 611
+	float     sRadius;       // 612 - 615
+	int32_t   fDynamicLight; // 616 - 619
+	int32_t   trlk;          // 620 - 623
+	glm::vec4 posCenter;     // 624 - 639
+	float     uAlphaCelBorder;
 };
 
 // Render Priority List
@@ -96,25 +93,50 @@ struct RPL
 {
 	RP rp;
 
-	GLuint  VAO;
-	GLsizei cvtx;
-
-	GLuint ssboWarpState;
-
-	SHD* pshd;
-
+	int fTransluscentSort;
 	float z;
 
-	void (*PFNBIND)(RPL*);
+	union
+	{
+		ALO  *palo;
+		DYSH *pdysh;
+	};
+
+	GLOB *pglob;
 
 	RO ro;
+};
+
+struct RSGLD
+{
+	int rko;
+	int fAnimateUv;
+	glm::vec2 uvOffsets;
+	float unSelfIllum;
+
+	uint32_t firstIndex;
+	uint32_t indexCount;
+	int32_t  baseVertex;
+
+	uint64_t shadowMapHandle;
+	uint64_t diffuseMapHandle;
+	uint64_t saturateMapHandle;
+};
+
+struct alignas(16) MATERIAL
+{
+	float ambient;
+	glm::vec3 _pad0;
+	glm::vec4 midtone;
+	glm::vec4 light;
 };
 
 struct RPLCEL
 {
 	RP rp;
-	GLuint  edgeSSBO;
-	GLsizei edgeCount;
+
+	GLuint edgeCount;
+	GLuint edgeSSBO;
 
 	ROCEL rocel;
 };
@@ -134,10 +156,6 @@ struct VTXFLG
 
 struct SUBCEL
 {
-	// SSBO: 4 vec4 per edge (E0, E1, OA, OB)
-	GLuint  edgeSSBO;  // GL_SHADER_STORAGE_BUFFER
-	GLsizei edgeCount; // number of edges (== ctwef)
-
 	std::vector <glm::vec3> positions;
 	std::vector <uint16_t>  indices;
 	std::vector <float>     weights;
@@ -169,10 +187,10 @@ struct WEKI
 
 struct WRBG
 {
-	struct ALO *palo;
-	struct GLOB *pglob;
+	struct ALO* palo;
+	struct GLOB* pglob;
 	OID oid;
-	struct WR *pwr;
+	struct WR* pwr;
 	int cmat;
 	int fDpos;
 	int fDuv;
@@ -196,34 +214,28 @@ struct FGFN
 	float duFogPlusClipBias;
 };
 
-struct WRBSG_GL 
+struct WRBGLOB_GL
 {
-	std::vector <glm::vec4> basePos; // xyz1 in render-vertex order
+	WR* pwr;
+	int cmat;
+	int vertexCount;
 
-	std::vector <glm::vec4> state;   // [imat*vertexCount + v]
-	WR* pwr = nullptr;
+	std::vector <glm::vec4> basePos; // size = vertexCount
+	std::vector <glm::vec4> state;   // size = cmat * vertexCount
 
 	GLuint ssboState;
-	GLsizeiptr ssboStateBytes;
-
-	// NEW: per-WR matrix buffers (or CPU pointers if you prefer)
-	GLuint ssboDpos; // WR's amatDpos array uploaded
-	GLuint ssboDuv; // WR's amatDuv array uploaded
-
-	int vertexCount;
-	int cmat;
 };
 
 struct SUBGLOB
 {
-	GLuint VAO;
-	GLuint VBO;
-	GLuint EBO;
+	uint32_t firstIndex;
+	uint32_t indexCount;
+	int32_t  baseVertex;
+
 	std::vector <VERTICE> vertices;
 	std::vector <INDICE>  indices;
-	int cvtx;
 
-	glm::vec3 posCenter; // Submodel orgin
+	glm::vec3 posCenter;
 	float sRadius;
 	// Object brightness
 	float unSelfIllum;
@@ -231,12 +243,10 @@ struct SUBGLOB
 	int shdID;
 	// Object shader property
 	struct SHD* pshd;
-	struct WRBSG* pwrbsg;
 	int cibnd;
 	std::vector <int> aibnd;
-	SAI *uvSai;     
+	SAI *uvSai;
 	bool usesUvAnim;
-	std::shared_ptr <WRBSG_GL> pwarp;
 };
 
 struct SUBGLOBI
@@ -249,10 +259,22 @@ struct SUBGLOBI
 // Model data
 struct GLOB // NOT DONE
 {
+	GLuint VAO;
+	GLuint VBO;
+	GLuint EBO;
+
+	GLuint ssboCachedMaterial;
+
+	void (*PFNDRAW)(int, int, int);
+
 	// Moodel origin position
 	glm::vec3 posCenter;
 	float sRadius;
 	RP rp;
+	int fThreeWay;
+	int fTransluscentSort;
+	byte grfshd;
+	TRLK trlk;
 	float sMRD;
 	float sCelBorderMRD;
 	float gZOrder;
@@ -265,13 +287,17 @@ struct GLOB // NOT DONE
 	float uFog;
 	FGFN fgfn;
 	float rSubglobRadius;
-	WR* pwr = nullptr;
+	WR* pwr;
 	std::shared_ptr <WRBG> pwrbg;
+	std::shared_ptr<WRBGLOB_GL> pwarpGlob;
 	// Number of submodels for model
 	int csubglob;
 	std::vector <SUBGLOB> asubglob;
 	int csubcel;
 	std::vector <SUBCEL> asubcel;
+	// SSBO: 4 vec4 per edge (E0, E1, OA, OB)
+	GLuint edgeSSBO;  // GL_SHADER_STORAGE_BUFFER
+	GLsizei edgeCount; // number of edges (== ctwef)
 	// Ptr to instance model matrix
 	std::shared_ptr <glm::mat4> pdmat;
 	struct BLOT* pblot;
@@ -310,8 +336,8 @@ struct GLOBSET
 // Loads 3D model data from binary file
 void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis);
 // Converts strips to tri lists and stores 3D sub model in VRAM
-void BuildSubGlob(GLOB* pglob, SUBGLOB* psubglob, SHD* pshd, std::vector <glm::vec3>& positions, std::vector <glm::vec3>& normals, std::vector <glm::vec4>& colors, std::vector <glm::vec2>& texcoords, std::vector <VTXFLG>& indexes, SUBPOSEF* subposef, std::vector <glm::vec3>& aposfPoses, std::vector <glm::vec3>& anormalfPoses, std::vector <float>& agWeights);
-void BuildSubcel(GLOBSET* pglobset, SUBCEL* psubcel, int cposf, std::vector <glm::vec3>& aposf, int ctwef, std::vector <TWEF>& atwef, std::vector <SUBPOSEF>& asubposef, std::vector <glm::vec3>& aposfPoses, std::vector <float>& agWeights);
+void BuildSubGlob(GLOB* pglob, SUBGLOB* psubglob, SHD* pshd, std::vector <glm::vec3>& positions, std::vector <glm::vec3>& normals, std::vector <glm::vec4>& colors, std::vector <glm::vec2>& texcoords, std::vector <VTXFLG>& indexes, SUBPOSEF* subposef, std::vector <glm::vec3>& aposfPoses, std::vector <glm::vec3>& anormalfPoses, std::vector <float>& agWeights, int fDynamic);
+void BuildSubcel(GLOBSET* pglobset, GLOB* pglob, SUBCEL* psubcel, int cposf, std::vector <glm::vec3>& aposf, int ctwef, std::vector <TWEF>& atwef, std::vector <SUBPOSEF>& asubposef, std::vector <glm::vec3>& aposfPoses, std::vector <float>& agWeights, std::vector <glm::vec4>& totalEdges);
 void BuildGlobsetSaaArray(GLOBSET* pglobset);
 void PostGlobsetLoad(GLOBSET* pglobset, ALO* palo);
 void UpdateGlobset(GLOBSET* pglobset, ALO* palo, float dt);

@@ -13,8 +13,17 @@
 #define LIGHTK_Frustrum  2
 #define LIGHTK_Spot      3
 
-#define FOG_PS2 1
-#define FOG_PS3 2
+#define MAX_LIGHTS 256
+#define MAX_SHADOWS 255
+#define MAX_OBJECT_SHADOWS 16
+
+#define TRLK_Relight 0
+#define TRLK_Baked   1
+#define TRLK_Dynamic 2
+
+#define FOG_NONE 0
+#define FOG_PS2  1
+#define FOG_PS3  2
 
 layout (location = 0) in vec3  vertex;
 layout (location = 1) in vec3  normal;
@@ -34,17 +43,17 @@ struct SWP // Scene world properties
     vec4  fogColor;
 }; uniform SWP swp;
 
-struct LIGHT 
+struct LIGHT
 {
     int   lightk;
     int   pad1;
     int   pad2;
-    int   pad3;
+    int   fDynamic;
     vec4  pos;
     vec4  dir;
     vec4  color;
     float constant;
-    float invDistance;
+    float invDst;
     float pad4;
     float dst;
     vec4  ru;
@@ -54,63 +63,104 @@ struct LIGHT
     vec4  falloffBias;
 };
 
-layout(std430, binding = 0) readonly buffer CMGL
+struct SHADOW
 {
-    mat4 matWorldToClip;
-    vec4 cameraPos;
-} cm;
-
-layout(std140, binding = 1) uniform RO // Render object properties
-{
-    mat4  model;        //   0 -  63
-    int   rko;          //  64
-    float uAlpha;       //  68
-    float uFog;         //  72
-    float darken;       //  76
-    vec2  uvOffsets;    //  80 -  87
-    int   _pad0;        //  88
-    int   _pad1;        //  92
-    int   warpType;     //  96
-    int   warpCmat;     // 100
-    int   warpCvtx;     // 104
-    int   _padWarp0;    // 108
-	int   _padWarp1;    // 112
-	int   _padWarp2;    // 116
-	int   _padWarp3;    // 120
-	int   _padWarp4;    // 124
-    mat4  amatDpos[4];  // 128 - 383
-    mat4  amatDuv[4];   // 384 - 639
-    int   fDynamic;     // 640
-    float unSelfIllum;  // 644
-    float sRadius;      // 648
-    int   _pad2;        // 652
-    vec4  posCenter;    // 656 - 671
-}op;
-
-layout(std430, binding = 2) readonly buffer LIGHTBLK 
-{
-    LIGHT lights[];
-};
-
-layout(std430, binding = 3) readonly buffer ACTIVELIGHTS 
-{
-    int numLights;
-    int lightIndices[];
-};
-
-layout(std430, binding = 4) readonly buffer WARPSTATE
-{
-    vec4 warpState[];
+    mat4  matWorldToUv;
+    mat4  matClipToUv;
+    vec4  rgba;
+    float wMin;
+    float wMax;
+    float gReserved;
+    float wFadeMin;
+    uvec2 textureHandle;
+    uvec2 _pad0;
+    vec4  posEffect;
+    float sRadiusEffect;
+    int   fDynamic;
+    int   shdk;
+    int   _pad1;
+    vec4  normalCast;
 };
 
 struct MATERIAL
 {
     float ambient;
-    vec3  midtone;
-    vec3  light;
+    vec4  midtone;
+    vec4  light;
 };
 
-vec4 worldPos;
+layout(std140, binding = 0) uniform CMGL
+{
+    mat4 matWorldToClip;
+    vec4 cameraPos;
+} cm;
+
+layout(std140, binding = 1) uniform RO
+{
+    mat4  model; 
+    float uAlpha;
+    float uFog;
+    float darken;
+    int   grfglob;
+    int   pad0;
+    int   warpType;
+    int   warpCmat;
+    int   warpCvtx;
+    mat4  amatDpos[4];
+    mat4  amatDuv[4];
+    int   fDynamic;
+    float sRadius;
+    int   fDynamicLight;
+    int   trlk;
+    vec4  posCenter;
+} op;
+
+layout(std430, binding = 2) readonly buffer LIGHTBLK
+{   
+    int numLights;
+    int pad[3];
+    LIGHT lights[];
+};
+
+layout(std430, binding = 3) readonly buffer ACTIVELIGHTS
+{
+    int numStaticLights;
+    int staticLightIndices[MAX_LIGHTS];
+    int numDynamicLights;
+    int dynamicLightIndices[MAX_LIGHTS];
+};
+
+layout(std430, binding = 4) readonly buffer SHADOWBLK
+{
+    int numLevelShadows;
+    int padShadowBlk[3];
+    SHADOW shadows[];
+};
+
+layout(std430, binding = 5) readonly buffer ACTIVESHADOWS
+{
+    int numActiveShadows;
+    int shadowIndices[MAX_SHADOWS];
+};
+
+layout(std430, binding = 6) readonly buffer WARPSTATE
+{
+    vec4 warpState[];
+};
+
+layout(std430, binding = 7) buffer CACHEDLIGHTING
+{
+    MATERIAL cachedMaterial[];
+};
+
+uniform int   rko;
+uniform int   fAnimateUv;
+uniform vec2  uvOffsets;
+uniform float unSelfIllum;
+
+uniform vec3  subGlobPosCenter;
+uniform float subGlobRadius;
+
 vec3 normalWorld;
 vec2 uvLocal;
 
@@ -118,14 +168,25 @@ float objectShadow;
 float objectMidtone;
 vec3  light;
 
+MATERIAL baseMaterial;
+
+out vec4 worldPos;
+out vec3 worldNormal;
 out vec4 vertexColor;
 out vec2 texcoord;
+
 out MATERIAL material;
+flat out int vShadowCount;
+flat out int vShadowIndices[MAX_OBJECT_SHADOWS];
 out float fogIntensity;
 
 void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal);
 void StartThreeWay();
 void InitGlobLighting();
+void ApplyStaticLightsRelight();
+void ApplyStaticLights();
+void ApplyDynamicLights();
+void AddDynamicMaterial();
 vec4 AddDirectionLight(LIGHT dirlight);
 vec4 AddDynamicLight(vec4 dir, vec4 color, vec4 ru, vec4 du);
 bool SphereIntersectsPositionLight(LIGHT L, vec3 center, float radius);
@@ -134,17 +195,23 @@ vec4 AddPositionLightDynamic(LIGHT pointlight);
 bool SphereIntersectsFrustum(LIGHT L, vec3 center, float radius);
 vec4 AddFrustrumLight(LIGHT frustumlight);
 vec4 AddFrustrumLightDynamic(LIGHT frustumlight);
+bool FShadowValid(SHADOW shadow, int grfglob);
+bool ShadowIntersectsSphere(SHADOW shadow, vec3 objectCenter, float objectRadius);
+void CacheWriteMaterial();
+void CacheReadMaterial();
 void ProcessGlobLighting();
 void CalculateFog();
-// This uses the PS2 Style fog
 void CalculateFogPS2();
-// This uses the PS3 style fog
 void CalculateFogPS3();
 
 void main()
 {
-    worldPos = op.model * vec4(vertex, 1.0);
-    uvLocal  = uv.xy + op.uvOffsets.xy;
+    worldPos    = op.model * vec4(vertex, 1.0);
+    worldNormal = normalize(mat3(op.model) * normal);
+    uvLocal     = uv.xy;
+
+    if (fAnimateUv > 0)
+        uvLocal += uvOffsets;
 
     if (op.warpType != WARP_NONE)
         ApplyWarp(worldPos, uvLocal);
@@ -152,10 +219,35 @@ void main()
     vertexColor = color;
     texcoord    = uvLocal;
 
-    if (op.rko == RKO_ThreeWay)
+    if (rko == RKO_ThreeWay)
         StartThreeWay();
 
-    if (swp.fogType != 0)
+    vShadowCount = 0;
+
+    if (numActiveShadows > 0)
+    {
+        int shadowCount = min(numActiveShadows, MAX_SHADOWS);
+
+        for (int i = 0; i < shadowCount; ++i)
+        {
+            int shIdx = shadowIndices[i];
+            SHADOW shadow = shadows[shIdx];
+
+            if (!FShadowValid(shadow, op.grfglob))
+                continue;
+
+            if (!ShadowIntersectsSphere(shadow, subGlobPosCenter, subGlobRadius))
+                continue;
+
+            if (vShadowCount < MAX_OBJECT_SHADOWS)
+            {
+                vShadowIndices[vShadowCount] = shIdx;
+                vShadowCount++;
+            }
+        }
+    }
+
+    if (swp.fogType != FOG_NONE)
         CalculateFog();
 
     gl_Position = cm.matWorldToClip * worldPos;
@@ -163,12 +255,6 @@ void main()
 
 void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal)
 {
-    int base = int(gl_VertexID);
-
-    // Guard so bad indices don't explode the draw
-    if (base < 0 || base >= op.warpCvtx)
-        return;
-
     switch(op.warpType)
     {
         case WARP_POS:
@@ -176,7 +262,7 @@ void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal)
 
         for (int imat = 0; imat < op.warpCmat; ++imat)
         {
-            vec4 st  = warpState[imat * op.warpCvtx + base];
+            vec4 st  = warpState[imat * op.warpCvtx + gl_VertexID];
             sumPos0 += op.amatDpos[imat] * st;
         }
 
@@ -188,8 +274,8 @@ void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal)
 
         for (int imat = 0; imat < op.warpCmat; ++imat)
         {
-            vec4 st  = warpState[imat * op.warpCvtx + base];
-            sumUv0  += (op.amatDuv[imat] * st).xy;
+             vec4 st = warpState[imat * op.warpCvtx + gl_VertexID];
+             sumUv0 += (op.amatDuv[imat] * st).xy;
         }
 
         uvLocal += sumUv0;
@@ -201,9 +287,9 @@ void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal)
 
         for (int imat = 0; imat < op.warpCmat; ++imat)
         {
-            vec4 st  = warpState[imat * op.warpCvtx + base];
-            sumPos1 += op.amatDpos[imat] * st;
-            sumUv1  += (op.amatDuv[imat] * st).xy;
+             vec4 st  = warpState[imat * op.warpCvtx + gl_VertexID];
+             sumPos1 += op.amatDpos[imat] * st;
+             sumUv1  += (op.amatDuv[imat] * st).xy;
         }
 
         vLocal.xyz += sumPos1.xyz;
@@ -214,141 +300,271 @@ void ApplyWarp(inout vec4 vLocal, inout vec2 uvLocal)
 
 void StartThreeWay()
 {
-    InitGlobLighting();
+    switch(op.trlk)
+    {
+        // Static bake
+        case TRLK_Relight:
+        InitGlobLighting();
+        ApplyStaticLightsRelight();
+        ProcessGlobLighting();
+        // Bake static lights
+        CacheWriteMaterial();
+        // Show dynamic this frame
+        if (op.fDynamicLight == 1)
+            AddDynamicMaterial();
+        break;
+
+        case TRLK_Baked:
+        // Read cached static
+        CacheReadMaterial();
+        // Dynamic on top (PS2 DownloadRelight idea)
+        if (op.fDynamicLight == 1)
+            AddDynamicMaterial();
+        break;
+
+        case TRLK_Dynamic:
+        default:
+        // Full relight (no cache)
+        InitGlobLighting();
+        ApplyStaticLights();
+        ApplyDynamicLights();
+        ProcessGlobLighting();
+        break;
+    };
+}
+
+void InitGlobLighting()
+{
+    objectShadow  = swp.uShadow;
+    objectMidtone = swp.uMidtone + unSelfIllum * 0.000031;
+    light = vec3(0.0);
+
+    normalWorld = normalize(mat3(op.model) * normal);
+}
+
+void ApplyStaticLightsRelight()
+{
+    for (int i = 0; i < numLights; ++i)
+    {
+        if (lights[i].fDynamic > 0)
+            continue;
+
+        switch (lights[i].lightk)
+        {
+            case LIGHTK_Direction:
+            light.rgb += AddDirectionLight(lights[i]).rgb;
+            break;
+
+            case LIGHTK_Position:
+            if (!SphereIntersectsPositionLight(lights[i], op.posCenter.xyz, op.sRadius))
+                continue;
+
+            light.rgb += AddPositionLight(lights[i]).rgb;
+            break;
+
+            case LIGHTK_Frustrum:
+            case LIGHTK_Spot:
+            if (!SphereIntersectsFrustum(lights[i], op.posCenter.xyz, op.sRadius))
+                continue;
+
+            light.rgb += AddFrustrumLight(lights[i]).rgb;
+            break;
+        }
+    }
+}
+
+void ApplyStaticLights()
+{
+    if (numStaticLights == 0)
+        return;
 
     if (op.fDynamic != 1)
     {
-        for (int i = 0; i < numLights; ++i)
+        for (int i = 0; i < numStaticLights; ++i)
         {
-            int idx = lightIndices[i];
-            LIGHT L = lights[idx];
+            int idx = staticLightIndices[i];
 
-            switch (L.lightk)
+            switch (lights[idx].lightk)
             {
                 case LIGHTK_Direction:
-                light.rgb += AddDirectionLight(L).rgb;
+                light.rgb += AddDirectionLight(lights[idx]).rgb;
                 break;
 
                 case LIGHTK_Position:
-                {
-                    if (!SphereIntersectsPositionLight(L, op.posCenter.xyz, op.sRadius))
-                        continue;
+                if (!SphereIntersectsPositionLight(lights[idx], op.posCenter.xyz, op.sRadius))
+                    continue;
 
-                    light.rgb += AddPositionLight(L).rgb;
-                    break;
-                }
+                light.rgb += AddPositionLight(lights[idx]).rgb;
+                break;
 
                 case LIGHTK_Frustrum:
                 case LIGHTK_Spot:
-                if (!SphereIntersectsFrustum(L, op.posCenter.xyz, op.sRadius))
+                if (!SphereIntersectsFrustum(lights[idx], op.posCenter.xyz, op.sRadius))
                     continue;
 
-                light.rgb += AddFrustrumLight(L).rgb;
+                light.rgb += AddFrustrumLight(lights[idx]).rgb;
                 break;
             }
         }
     }
     else
     {
-        for (int i = 0; i < numLights; ++i)
+        for (int i = 0; i < numStaticLights; ++i)
         {
-            int idx = lightIndices[i];
-            LIGHT L = lights[idx];
+            int idx = staticLightIndices[i];
 
-            switch (L.lightk)
+            switch (lights[idx].lightk)
             {
                 case LIGHTK_Direction:
-                light.rgb += AddDynamicLight(L.dir, L.color, L.ru, L.du).rgb;
+                light.rgb += AddDynamicLight(lights[idx].dir, lights[idx].color, lights[idx].ru, lights[idx].du).rgb;
                 break;
 
                 case LIGHTK_Position:
-                {
-                    if (!SphereIntersectsPositionLight(L, op.posCenter.xyz, op.sRadius))
-                        continue;
+                if (!SphereIntersectsPositionLight(lights[idx], op.posCenter.xyz, op.sRadius))
+                    continue;
 
-                    light.rgb += AddPositionLightDynamic(L).rgb;
-                    break;
-                }
+                light.rgb += AddPositionLightDynamic(lights[idx]).rgb;
+                break;
 
                 case LIGHTK_Frustrum:
                 case LIGHTK_Spot:
-                if (!SphereIntersectsFrustum(L, op.posCenter.xyz, op.sRadius))
+                if (!SphereIntersectsFrustum(lights[idx], op.posCenter.xyz, op.sRadius))
                     continue;
 
-                light.rgb += AddFrustrumLightDynamic(L).rgb;
+                light.rgb += AddFrustrumLightDynamic(lights[idx]).rgb;
                 break;
             }
         }
     }
-
-    ProcessGlobLighting();
 }
 
-void InitGlobLighting()
+void ApplyDynamicLights()
 {
-    objectShadow  = swp.uShadow;
-    objectMidtone = swp.uMidtone + op.unSelfIllum * 0.000031;
-    light = vec3(0.0);
+    if (numDynamicLights == 0)
+        return;
 
-    normalWorld = normalize(mat3(op.model) * normal);
+    if (op.fDynamic != 1)
+    {
+        for (int i = 0; i < numDynamicLights; ++i)
+        {
+            int idx = dynamicLightIndices[i];
+            switch (lights[idx].lightk)
+            {
+                case LIGHTK_Direction:
+                light.rgb += AddDirectionLight(lights[idx]).rgb;
+                break;
+
+                case LIGHTK_Position:
+                if (!SphereIntersectsPositionLight(lights[idx], op.posCenter.xyz, op.sRadius))
+                    continue;
+
+                light.rgb += AddPositionLight(lights[idx]).rgb;
+                break;
+
+                case LIGHTK_Frustrum:
+                case LIGHTK_Spot:
+                if (!SphereIntersectsFrustum(lights[idx], op.posCenter.xyz, op.sRadius))
+                    continue;
+
+                light.rgb += AddFrustrumLight(lights[idx]).rgb;
+                break;
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < numDynamicLights; ++i)
+        {
+            int idx = dynamicLightIndices[i];
+            switch (lights[idx].lightk)
+            {
+                case LIGHTK_Direction:
+                light.rgb += AddDynamicLight(lights[idx].dir, lights[idx].color, lights[idx].ru, lights[idx].du).rgb;
+                break;
+
+                case LIGHTK_Position:
+                if (!SphereIntersectsPositionLight(lights[idx], op.posCenter.xyz, op.sRadius))
+                    continue;
+
+                light.rgb += AddPositionLightDynamic(lights[idx]).rgb;
+                break;
+
+                case LIGHTK_Frustrum:
+                case LIGHTK_Spot:
+                if (!SphereIntersectsFrustum(lights[idx], op.posCenter.xyz, op.sRadius))
+                    continue;
+
+                light.rgb += AddFrustrumLightDynamic(lights[idx]).rgb;
+                break;
+            }
+        }
+    }
+}
+
+void AddDynamicMaterial()
+{
+    // Save cached base
+    baseMaterial = material;
+
+    // Compute dynamic-only into material
+    objectShadow  = 0.0;
+    objectMidtone = 0.0;
+    light         = vec3(0.0);
+
+    normalWorld   = normalize(mat3(op.model) * normal);
+
+    ApplyDynamicLights();
+    ProcessGlobLighting(); // material = dynamic-only buckets
+
+    // Add on top
+    material.ambient = baseMaterial.ambient + material.ambient;
+    material.midtone = baseMaterial.midtone + material.midtone;
+    material.light   = baseMaterial.light   + material.light;
 }
 
 vec4 AddDirectionLight(LIGHT dirlight)
 {
-    // Dot product between normal and light direction (skip normalize if normal is already normalized)
-    float NdotL = max(dot(normalWorld, dirlight.dir.xyz), 0.0);
+    vec3 L = normalize(dirlight.dir.xyz);
 
-    // Stylized boost: N + N^3 approximation
-    float diffuse = NdotL * (1.0 + NdotL * NdotL);
+    float f = dot(normalWorld, L);
 
-    // Ramp contributions without branching
-    float shadow    = diffuse * dirlight.ru.x + dirlight.du.x;
-    float midtone   = diffuse * dirlight.ru.y + dirlight.du.y;
-    float highlight = diffuse * dirlight.ru.z + dirlight.du.z;
+    // PS2 curve: dot + dot^3
+    f = f + f * f * f;
 
-    // Clamp results
-    shadow    = max(shadow,    0.0);
-    midtone   = max(midtone,   0.0);
-    highlight = max(highlight, 0.0);
+    float shadow    = max(f * dirlight.ru.x + dirlight.du.x, 0.0);
+    float midtone   = max(f * dirlight.ru.y + dirlight.du.y, 0.0);
+    float highlight = max(f * dirlight.ru.z + dirlight.du.z, 0.0);
 
-    // Accumulate tone contributions
     objectShadow  += shadow;
     objectMidtone += midtone;
 
-    // Final output color
     return vec4(dirlight.color * highlight);
 }
 
 vec4 AddDynamicLight(vec4 dir, vec4 color, vec4 ru, vec4 du)
 {
-    // Transform light direction into model space
     vec3 lightDir = normalize(mat3(transpose(op.model)) * vec3(dir));
-    
-    // Compute stylized diffuse term
     float diffuse = dot(lightDir, normal);
     diffuse += diffuse * diffuse * diffuse;
 
-    // Compute lighting components
     float shadow    = diffuse * ru.x + du.x;
     float midtone   = diffuse * ru.y + du.y;
     float highlight = diffuse * ru.z + du.z;
 
-    // Accumulate lighting contributions
-    objectShadow  += max(shadow,    0.0);
-    objectMidtone += max(midtone,   0.0);
+    objectShadow  += max(shadow,  0.0);
+    objectMidtone += max(midtone, 0.0);
     highlight      = max(highlight, 0.0);
 
-    // Return final color modulated by stylized highlight
     return color * highlight;
 }
 
 bool SphereIntersectsPositionLight(LIGHT L, vec3 center, float radius)
 {
     // Vector from light to object center
-    vec3  toLight = L.pos.xyz - center;
+    vec3 toLight = L.pos.xyz - center;
 
     // Squared distance between centers
-    float distSq  = dot(toLight, toLight);
+    float distSq = dot(toLight, toLight);
 
     // Position-light influence radius:
     // L.dst = light falloff (gMax), same as PS2 lmFallOffS.gMax
@@ -361,36 +577,31 @@ bool SphereIntersectsPositionLight(LIGHT L, vec3 center, float radius)
 vec4 AddPositionLight(LIGHT pointlight)
 {
     vec3 toLight = pointlight.pos.xyz - worldPos.xyz;
-    // Normalize light direction with a zero-length guard (use toLight directly for accuracy)
-    float d2 = dot(toLight, toLight);
-    float invLen = (d2 > 1e-12) ? inversesqrt(d2) : 0.0; // 1/|d|
-    vec3  L = toLight * invLen;
 
-    // Normalize the normal (VU1 guards this too)
+    float invLen = inversesqrt(dot(toLight, toLight));
+    vec3 L = toLight * invLen;
+
     vec3 N = normalWorld;
     float n2 = dot(N, N);
-    if (n2 > 1e-12) N *= inversesqrt(n2); else N = vec3(0.0);
 
-    // Raw dot — do NOT clamp before stylized term
+    if (n2 >= 0.00000001)
+        N *= inversesqrt(n2);
+    else
+        N = vec3(0.0);
+
     float ndotl = dot(N, L);
 
-    // Stylized boost: n + n^3 (== n * (1 + n^2))
     float diffuse = ndotl + ndotl * ndotl * ndotl;
 
-    // Attenuation: du + ru * (1/|d|), then clamp to [0,1]
-    // falloff.x = duAtt, falloff.y = ruAtt  (match your struct)
-    float attenuation = clamp(pointlight.constant + pointlight.invDistance * invLen, 0.0, 1.0);
+    float attenuation = clamp(pointlight.constant + pointlight.invDst * invLen, 0.0, 1.0);
 
-    // Ramps (clamp each ≥ 0, then apply attenuation)
     float shadow    = max(diffuse * pointlight.ru.x + pointlight.du.x, 0.0) * attenuation;
     float midtone   = max(diffuse * pointlight.ru.y + pointlight.du.y, 0.0) * attenuation;
     float highlight = max(diffuse * pointlight.ru.z + pointlight.du.z, 0.0) * attenuation;
 
-    // Accumulate (VU1 adds to running totals)
     objectShadow  += shadow;
     objectMidtone += midtone;
 
-    // Final highlight-scaled light color
     return vec4(pointlight.color * highlight);
 }
 
@@ -399,11 +610,9 @@ vec4 AddPositionLightDynamic(LIGHT pointlight)
     vec3  direction = pointlight.pos.xyz - op.posCenter.xyz;
     float distance = length(direction);
 
-    // Compute clamped attenuation
-    float attenuation = 1.0 / distance * pointlight.invDistance + pointlight.constant;
+    float attenuation = 1.0 / distance * pointlight.invDst + pointlight.constant;
     attenuation = clamp(attenuation, 0.0, 1.0);
 
-    // Apply dynamic lighting
     vec4 color = AddDynamicLight(vec4(direction, 0.0), pointlight.color * attenuation, pointlight.ru * attenuation, pointlight.du * attenuation) * attenuation;
 
     return color;
@@ -411,54 +620,42 @@ vec4 AddPositionLightDynamic(LIGHT pointlight)
 
 bool SphereIntersectsFrustum(LIGHT L, vec3 center, float radius)
 {
-    // Extract frustum planes from clip matrix (RH, Z in [0,1])
-    // M maps world -> clip, planes in world space:
     mat4 M = L.matFrustrum;
 
-    // Standard extraction (row-major GLSL: M[column]):
     vec4 planes[6];
-    planes[0] = M[3] + M[0]; // left
-    planes[1] = M[3] - M[0]; // right
-    planes[2] = M[3] + M[1]; // bottom
-    planes[3] = M[3] - M[1]; // top
-    planes[4] = M[3] + M[2]; // near
-    planes[5] = M[3] - M[2]; // far
+    planes[0] = M[3] + M[0];
+    planes[1] = M[3] - M[0];
+    planes[2] = M[3] + M[1];
+    planes[3] = M[3] - M[1];
+    planes[4] = M[3] + M[2];
+    planes[5] = M[3] - M[2];
 
     for (int i = 0; i < 6; ++i)
     {
         vec3 n = planes[i].xyz;
         float len = length(n);
 
-        if (len < 1e-6) continue; // degenerate (shouldn’t happen but be safe)
+        if (len < 1e-6) continue;
 
-        // Normalize plane so |n|==1
         n /= len;
         float d = planes[i].w / len;
 
-        // Signed distance from sphere center to plane
         float dist = dot(n, center) + d;
-
-        // If sphere is fully outside this plane, no intersection
         if (dist < -radius)
             return false;
     }
 
-    return true; // sphere intersects or is inside all planes
+    return true;
 }
 
 vec4 AddFrustrumLight(LIGHT frustumlight)
 {
     vec4 clipL = frustumlight.matFrustrum * vec4(worldPos.xyz, 1.0);
 
-    // Homogeneous clip (RH, Z in [0,1]) to mirror EmulateClip’s reject
-    if (clipL.w <= 0.0) 
-        return vec4(0.0);
-    if (abs(clipL.x) > clipL.w) 
-        return vec4(0.0);
-    if (abs(clipL.y) > clipL.w) 
-        return vec4(0.0);
-    if (clipL.z < 0.0 || clipL.z > clipL.w) 
-        return vec4(0.0);
+    if (clipL.w <= 0.0) return vec4(0.0);
+    if (abs(clipL.x) > clipL.w) return vec4(0.0);
+    if (abs(clipL.y) > clipL.w) return vec4(0.0);
+    if (clipL.z < 0.0 || clipL.z > clipL.w) return vec4(0.0);
 
     float invW = 1.0 / clipL.w;
 
@@ -473,9 +670,7 @@ vec4 AddFrustrumLight(LIGHT frustumlight)
     float fw = clamp(frustumlight.falloffScale.w * wv + frustumlight.falloffBias.w, 0.0, 1.0);
 
     float mask = fx * fy * fr * fw;
-
-    if (mask <= 0.0) 
-        return vec4(0.0);
+    if (mask <= 0.0) return vec4(0.0);
 
     vec3 Ldir = frustumlight.dir.xyz;
     float len2 = dot(Ldir, Ldir);
@@ -496,26 +691,19 @@ vec4 AddFrustrumLight(LIGHT frustumlight)
 
 vec4 AddFrustrumLightDynamic(LIGHT frustumlight)
 {
-    // 1) Transform sample point into light clip space
     vec4 clipL = frustumlight.matFrustrum * vec4(op.posCenter.xyz, 1.0);
 
-    // EmulateClip-style frustum test (RH, Z in [0,1])
-    if (clipL.w <= 0.0) 
-        return vec4(0.0);
-    if (abs(clipL.x) > clipL.w) 
-        return vec4(0.0);
-    if (abs(clipL.y) > clipL.w) 
-        return vec4(0.0);
-    if (clipL.z < 0.0 || clipL.z > clipL.w) 
-        return vec4(0.0);
+    if (clipL.w <= 0.0) return vec4(0.0);
+    if (abs(clipL.x) > clipL.w) return vec4(0.0);
+    if (abs(clipL.y) > clipL.w) return vec4(0.0);
+    if (clipL.z < 0.0 || clipL.z > clipL.w) return vec4(0.0);
 
-    // 2) Build falloff coordinates at this single sample
     float invW = 1.0 / clipL.w;
 
-    float u  = abs(clipL.x * invW);   // |x/w|
-    float v  = abs(clipL.y * invW);   // |y/w|
-    float r2 = u * u + v * v;         // radial^2 in projected space
-    float wv = clipL.w;               // S/distance param
+    float u  = abs(clipL.x * invW);
+    float v  = abs(clipL.y * invW);
+    float r2 = u * u + v * v;
+    float wv = clipL.w;
 
     float fx = clamp(frustumlight.falloffScale.x * u  + frustumlight.falloffBias.x, 0.0, 1.0);
     float fy = clamp(frustumlight.falloffScale.y * v  + frustumlight.falloffBias.y, 0.0, 1.0);
@@ -523,17 +711,54 @@ vec4 AddFrustrumLightDynamic(LIGHT frustumlight)
     float fw = clamp(frustumlight.falloffScale.w * wv + frustumlight.falloffBias.w, 0.0, 1.0);
 
     float mask = fx * fy * fr * fw;
+    if (mask <= 0.0) return vec4(0.0);
 
-    // If sample is outside effective falloff, light contributes nothing
-    if (mask <= 0.0) 
-        return vec4(0.0);
-
-    // 3) Scale angle ramps by mask (this is what VU1 does with ru/du)
     vec4 ruScaled = frustumlight.ru * mask;
     vec4 duScaled = frustumlight.du * mask;
 
-    // 4) Call the quick/dynamic light path
     return AddDynamicLight(frustumlight.dir, frustumlight.color, ruScaled, duScaled);
+}
+
+bool FShadowValid(SHADOW shadow, int grfglob)
+{
+    if ((grfglob & 1) != 0 && shadow.shdk == 2)
+        return true;
+
+    if ((grfglob & 2) != 0 && shadow.shdk == 3)
+        return true;
+
+    return false;
+}
+
+bool ShadowIntersectsSphere(SHADOW shadow, vec3 objectCenter, float objectRadius)
+{
+    if (shadow.fDynamic == 1)
+    {
+        vec3 N = normalize(worldNormal);
+        vec3 castDir = normalize(shadow.normalCast.xyz);
+
+        if (dot(N, -castDir) <= -0.5)
+            return false;
+    }
+
+    vec3  d = objectCenter - vec3(shadow.posEffect);
+    float r = objectRadius + shadow.sRadiusEffect;
+
+    return dot(d, d) <= r * r;
+}
+
+void CacheWriteMaterial()
+{
+    cachedMaterial[gl_VertexID].ambient = material.ambient;
+    cachedMaterial[gl_VertexID].midtone = material.midtone;
+    cachedMaterial[gl_VertexID].light   = material.light;
+}
+
+void CacheReadMaterial()
+{
+    material.ambient = cachedMaterial[gl_VertexID].ambient;
+    material.midtone = cachedMaterial[gl_VertexID].midtone;
+    material.light   = cachedMaterial[gl_VertexID].light;
 }
 
 void ProcessGlobLighting()
@@ -550,9 +775,9 @@ void ProcessGlobLighting()
     float baseIntensity = dot(vertexColor.rgb, vec3(0.3333333));
 
     // Assign lighting output
-    material.ambient = shadowContribution * baseIntensity;
+    material.ambient   = shadowContribution * baseIntensity;
     material.midtone.rgb = clampedMidtone * vertexColor.rgb;
-    material.light   = min(light.rgb, vec3(1.0)) * baseIntensity;
+    material.light.rgb = min(light.rgb, vec3(1.0)) * baseIntensity;
 }
 
 void CalculateFog()
@@ -571,35 +796,29 @@ void CalculateFog()
 
 void CalculateFogPS2()
 {
-    // Distance to camera
     float z = length(cm.cameraPos.xyz - worldPos.xyz);
     float recipZ = 1.0 / max(z, 1e-4);
 
     float recipNear = 1.0 / swp.fogNear;
     float recipFar  = 1.0 / swp.fogFar;
 
-    float denom = max(recipNear - recipFar, 1e-6); // avoid divide by 0
-    float fog = clamp((recipNear - recipZ) * (1.0 / denom), 0.0, 1.0);
+    float denom = max(recipNear - recipFar, 1e-6);
+    float fog   = clamp((recipNear - recipZ) * (1.0 / denom), 0.0, 1.0);
 
     float fogMult = mix(swp.fogMax, swp.fogMax * op.uFog, step(0.001, op.uFog));
-
-    fogIntensity = fog * fogMult;
+    fogIntensity  = clamp((fog * fogMult) * swp.fogColor.a, 0.0, 1.0);
 }
 
 void CalculateFogPS3()
 {
-    // Compute squared distance for performance
-    vec3  offset = cm.cameraPos.xyz - worldPos.xyz;
+    vec3 offset = cm.cameraPos.xyz - worldPos.xyz;
+
     float distance2 = dot(offset, offset);
     float distanceToCamera = sqrt(distance2);
 
-    // Precompute inverse range for fog mapping
     float invFogRange = 1.0 / max(swp.fogFar - swp.fogNear, 1e-6);
-
-    // Linear fog factor in 0..1 range
     float fog = clamp((distanceToCamera - swp.fogNear) * invFogRange, 0.0, 1.0);
 
     float fogMult = mix(swp.fogMax, swp.fogMax * op.uFog, step(0.001, op.uFog));
-
-    fogIntensity = fog * fogMult;
+    fogIntensity  = clamp((fog * fogMult) * swp.fogColor.a, 0.0, 1.0);
 }

@@ -5,19 +5,61 @@ void UnloadShaders()
 {
     for (int i = 0; i < g_cbmp; i++)
     {
-        glDeleteTextures(1, &g_abmp[i].glShadowMap);
-        glDeleteTextures(1, &g_abmp[i].glDiffuseMap);
-        glDeleteTextures(1, &g_abmp[i].glSaturateMap);
+        if (g_abmp[i].hShadowMap != 0)
+        {
+            glMakeTextureHandleNonResidentARB(g_abmp[i].hShadowMap);
+            g_abmp[i].hShadowMap = 0;
+        }
+
+        if (g_abmp[i].glShadowMap != 0)
+        {
+            glDeleteTextures(1, &g_abmp[i].glShadowMap);
+            g_abmp[i].glShadowMap = 0;
+        }
+
+        if (g_abmp[i].hDiffuseMap != 0)
+        {
+            glMakeTextureHandleNonResidentARB(g_abmp[i].hDiffuseMap);
+            g_abmp[i].hDiffuseMap = 0;
+        }
+
+        if (g_abmp[i].glDiffuseMap != 0)
+        {
+            glDeleteTextures(1, &g_abmp[i].glDiffuseMap);
+            g_abmp[i].glDiffuseMap = 0;
+        }
+
+        if (g_abmp[i].hSaturateMap != 0)
+        {
+            glMakeTextureHandleNonResidentARB(g_abmp[i].hSaturateMap);
+            g_abmp[i].hSaturateMap = 0;
+        }
+
+        if (g_abmp[i].glSaturateMap != 0)
+        {
+            glDeleteTextures(1, &g_abmp[i].glSaturateMap);
+            g_abmp[i].glSaturateMap = 0;
+        }
     }
 
-    for (int i = 0; i < g_afontBrx.size(); i++)
+    /*for (int i = 0; i < g_afontBrx.size(); i++)
     {
         glDeleteTextures(1, &g_afontBrx[i].m_pbmp->glShadowMap);
         glDeleteTextures(1, &g_afontBrx[i].m_pbmp->glDiffuseMap);
         glDeleteTextures(1, &g_afontBrx[i].m_pbmp->glSaturateMap);
+    }*/
+
+    if (whiteHandle)
+    {
+        glMakeTextureHandleNonResidentARB(whiteHandle);
+        whiteHandle = 0;
     }
 
-    glDeleteTextures(1, &whiteTex);
+    if (whiteTex)
+    {
+        glDeleteTextures(1, &whiteTex);
+        whiteTex = 0;
+    }
 
     g_cshd = 0;
     g_ashd.clear();
@@ -119,13 +161,21 @@ void LoadFontsFromBrx(CBinaryInputStream* pbis)
         }
     }
 
-    whiteTex;
     glGenTextures(1, &whiteTex);
     glBindTexture(GL_TEXTURE_2D, whiteTex);
-    uint32_t white = 0xFFFFFFFF;
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &white);
+
+    uint32_t white = 0xFFFFFFFFu;
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &white);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    whiteHandle = glGetTextureHandleARB(whiteTex);
+    glMakeTextureHandleResidentARB(whiteHandle);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void LoadTexFromBrx(TEX* ptex, CBinaryInputStream* pbis)
@@ -220,63 +270,230 @@ SHD* PshdFindShader(OID oid)
 
 void LoadShadersFromBrx(CBinaryInputStream* pbis)
 {
-    // Loads CLUT property's from binary file
     LoadColorTablesFromBrx(pbis);
-    // Loads texture property's from binary file
     LoadBitmapsFromBrx(pbis);
 
-    // Loading number of shaders from binary file
     g_cshd = pbis->U16Read();
     g_ashd.resize(g_cshd);
 
-    // Loading number of shader animation's from file
     g_cpsaa = pbis->U16Read();
     g_apsaa.reserve(g_cpsaa);
 
     for (int i = 0; i < g_cshd; i++)
     {
-        // Loading shader property's from binary file
-        g_ashd[i].shdk   = (SHDK)pbis->U8Read();
-        g_ashd[i].grfshd = pbis->U8Read();
-        g_ashd[i].oid    = (OID)pbis->S16Read();
+        SHD& shd = g_ashd[i];
 
-        g_ashd[i].rgba.r = (pbis->U8Read() * 2.0f) / 0x1FE;
-        g_ashd[i].rgba.g = (pbis->U8Read() * 2.0f) / 0x1FE;
-        g_ashd[i].rgba.b = (pbis->U8Read() * 2.0f) / 0x1FE;
-        g_ashd[i].rgba.a = (pbis->U8Read() * 2.0f) / 0x1FE;
+        shd.shdk = (SHDK)pbis->U8Read();
 
-        g_ashd[i].rgbaVolume.r = (pbis->U8Read() * 2.0f) / 0x1FE;
-        g_ashd[i].rgbaVolume.g = (pbis->U8Read() * 2.0f) / 0x1FE;
-        g_ashd[i].rgbaVolume.b = (pbis->U8Read() * 2.0f) / 0x1FE;
-        g_ashd[i].rgbaVolume.a = (pbis->U8Read() * 2.0f) / 0x1FE;
+        shd.grfshd = pbis->U8Read();
+        shd.oid = (OID)pbis->S16Read();
 
-        g_ashd[i].grfzon    = pbis->U32Read();
-        g_ashd[i].oidAltSat = (OID)pbis->U16Read();
-        g_ashd[i].rp        = (RP)pbis->U8Read();
-        g_ashd[i].ctex      = pbis->U8Read();
+        shd.rgba.r = (pbis->U8Read() * 2.0f) / 0x1FE;
+        shd.rgba.g = (pbis->U8Read() * 2.0f) / 0x1FE;
+        shd.rgba.b = (pbis->U8Read() * 2.0f) / 0x1FE;
+        shd.rgba.a = (pbis->U8Read() * 2.0f) / 0x1FE;
 
-        g_ashd[i].atex.resize(g_ashd[i].ctex);
+        shd.rgbaVolume.r = (pbis->U8Read() * 2.0f) / 0x1FE;
+        shd.rgbaVolume.g = (pbis->U8Read() * 2.0f) / 0x1FE;
+        shd.rgbaVolume.b = (pbis->U8Read() * 2.0f) / 0x1FE;
+        shd.rgbaVolume.a = (pbis->U8Read() * 2.0f) / 0x1FE;
 
-        // Reading shader animation from file
-        SAA *psaa = PsaaLoadFromBrx(pbis);
-        g_ashd[i].psaa = psaa;
+        shd.grfzon = pbis->U32Read();
+        shd.oidAltSat = (OID)pbis->U16Read();
+        shd.rp = (RP)pbis->U8Read();
+        shd.ctex = pbis->U8Read();
+
+        shd.atex.resize(shd.ctex);
+
+        SAA* psaa = PsaaLoadFromBrx(pbis);
+        shd.psaa = psaa;
 
         if (psaa != nullptr)
         {
-            psaa->sai.pshd = &g_ashd[i];
+            psaa->sai.pshd = &shd;
             g_apsaa.push_back(psaa);
         }
 
-        // Reading texture tables from file
-        for (int a = 0; a < g_ashd[i].ctex; a++)
-            LoadTexFromBrx(&g_ashd[i].atex[a], pbis);
+        for (int a = 0; a < shd.ctex; a++)
+            LoadTexFromBrx(&shd.atex[a], pbis);
 
-        g_ashd[i].cframe = g_ashd[i].atex[0].cibmp;
+        if (!shd.atex.empty())
+            shd.cframe = shd.atex[0].cibmp;
+        else
+            shd.cframe = 0;
+
+        // ------------------------------------------------------------
+        // Create GL textures for every iframe, not just frame 0.
+        // Original PackTexGifs uses ptex->apbmp[iframe].
+        // ------------------------------------------------------------
+        for (int a = 0; a < shd.ctex; a++)
+        {
+            TEX& tex = shd.atex[a];
+
+            for (int iframe = 0; iframe < (int)tex.abmp.size(); iframe++)
+            {
+                BMP* pbmp = tex.abmp[iframe];
+
+                if (pbmp == nullptr)
+                    continue;
+
+                int width = pbmp->bmpWidth;
+                int height = pbmp->bmpHeight;
+                int maxDim = std::max(width, height);
+                int mipLevels = 1 + (int)std::floor(std::log2((double)maxDim));
+
+                auto SetupTexture = [&](GLuint& glTex, uint64_t& handle)
+                    {
+                        if (glTex != 0)
+                            return;
+
+                        glGenTextures(1, &glTex);
+                        glBindTexture(GL_TEXTURE_2D, glTex);
+
+                        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+                        if (tex.grftex & 1)
+                            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+
+                        if (tex.grftex & 2)
+                            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+                        glTexStorage2D(GL_TEXTURE_2D, mipLevels, GL_RGBA8, width, height);
+
+                        handle = glGetTextureHandleARB(glTex);
+                        glMakeTextureHandleResidentARB(handle);
+                    };
+
+                if (shd.shdk == SHDK_ThreeWay)
+                {
+                    SetupTexture(pbmp->glShadowMap,   pbmp->hShadowMap);
+                    SetupTexture(pbmp->glDiffuseMap,  pbmp->hDiffuseMap);
+                    SetupTexture(pbmp->glSaturateMap, pbmp->hSaturateMap);
+                }
+                else
+                    SetupTexture(pbmp->glDiffuseMap, pbmp->hDiffuseMap);
+            }
+        }
+
+        // ------------------------------------------------------------
+        // Original Sly-style SHDP allocation.
+        // ------------------------------------------------------------
+        switch (shd.shdk)
+        {
+            case SHDK_ThreeWay:
+            shd.cshdp = 3;
+            break;
+
+            case SHDK_ProjectedVolume:
+            shd.cshdp = 4;
+            break;
+
+            default:
+            shd.cshdp = 1;
+            break;
+        }
+
+        shd.ashdp.clear();
+        shd.ashdp.resize(shd.cshdp);
+
+        auto AllocShdp = [&](int index, int cqwRegs)
+            {
+                SHDP& shdp = shd.ashdp[index];
+
+                shdp.cqwRegs = cqwRegs;
+
+                // vector<uint16_t>
+                // 1 QW = 16 bytes = 8 uint16_t
+                shdp.aaqwRegs.resize(shd.cframe * cqwRegs * 8);
+            };
+
+        switch (shd.shdk)
+        {
+            case SHDK_ThreeWay:
+            {
+                AllocShdp(0, 8);
+                AllocShdp(1, 8);
+                AllocShdp(2, 8);
+                break;
+            }
+
+            case SHDK_ProjectedVolume:
+            {
+                int extra = 0;
+
+                if ((shd.grfshd & 2) != 0)
+                    extra = 3;
+
+                AllocShdp(0, extra + 5);
+                AllocShdp(1, 5);
+                AllocShdp(2, 7);
+                AllocShdp(3, 4);
+                break;
+            }
+
+            case SHDK_Shadow:
+            case SHDK_SpotLight:
+            {
+                AllocShdp(0, 6);
+                break;
+            }
+
+            case SHDK_CreateTexture:
+            {
+                AllocShdp(0, 7);
+                break;
+            }
+
+            case SHDK_MurkClear:
+            {
+                AllocShdp(0, 4);
+                break;
+            }
+
+            default:
+            {
+                AllocShdp(0, 8);
+                break;
+            }
+        }
     }
 
     LoadFontsFromBrx(pbis);
 
-    for (int i = 0; i < g_apsaa.size(); i++)
+    for (int i = 0; i < g_cfontBrx; i++)
+    {
+        if (g_afontBrx[i].m_pbmp != nullptr &&
+            g_afontBrx[i].m_pbmp->glDiffuseMap == 0)
+        {
+            BMP* pbmp = g_afontBrx[i].m_pbmp;
+
+            int width = pbmp->bmpWidth;
+            int height = pbmp->bmpHeight;
+
+            glGenTextures(1, &pbmp->glDiffuseMap);
+            glBindTexture(GL_TEXTURE_2D, pbmp->glDiffuseMap);
+
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, width, height);
+
+            pbmp->hDiffuseMap = glGetTextureHandleARB(pbmp->glDiffuseMap);
+            glMakeTextureHandleResidentARB(pbmp->hDiffuseMap);
+        }
+    }
+
+    for (int i = 0; i < (int)g_apsaa.size(); i++)
     {
         if (g_apsaa[i]->pvtsaa != nullptr)
             g_apsaa[i]->pvtsaa->pfnPostSaaLoad(g_apsaa[i]);
@@ -287,21 +504,21 @@ void LoadShadersFromBrx(CBinaryInputStream* pbis)
 
 void SetSaiIframe(SAI* psai, int iframe)
 {
-    if (!psai || !psai->pshd)
+    if (!psai || !psai->pshd || psai->pshd->cframe <= 0)
         return;
 
-    // Clamp iframe to [0, cframe - 1]
-    const int maxFrame = psai->pshd->cframe - 1;
-    if (iframe < 0)       iframe = 0;
-    else if (iframe > maxFrame) iframe = maxFrame;
+    int maxFrame = psai->pshd->cframe - 1;
 
-    // If iframe didn't change, nothing to do.
+    if (iframe < 0)
+        iframe = 0;
+    else if (iframe > maxFrame)
+        iframe = maxFrame;
+
     if (psai->iframe == iframe)
         return;
 
     psai->iframe = iframe;
 
-    // Enqueue for update if not already queued and not the tail sentinel.
     if (!psai->psaiNext && psai != g_psaiUpdateTail)
     {
         if (!g_psaiUpdateTail)
@@ -316,11 +533,12 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
 {
     for (uint16_t i = 0; i < 0x100; i += 0x20)
     {
-        for (uint16_t j = i; j < i + 8; j++) {
-            csm1ClutIndices[j + 0x0]  = static_cast <uint8_t>(j) + 0x0;
-            csm1ClutIndices[j + 0x8]  = static_cast <uint8_t>(j) + 0x10;
-            csm1ClutIndices[j + 0x10] = static_cast <uint8_t>(j) + 0x8;
-            csm1ClutIndices[j + 0x18] = static_cast <uint8_t>(j) + 0x18;
+        for (uint16_t j = i; j < i + 8; j++)
+        {
+            csm1ClutIndices[j + 0x0]  = static_cast<uint8_t>(j) + 0x0;
+            csm1ClutIndices[j + 0x8]  = static_cast<uint8_t>(j) + 0x10;
+            csm1ClutIndices[j + 0x10] = static_cast<uint8_t>(j) + 0x8;
+            csm1ClutIndices[j + 0x18] = static_cast<uint8_t>(j) + 0x18;
         }
     }
 
@@ -328,70 +546,97 @@ void LoadTexturesFromBrx(CBinaryInputStream* pbis)
 
     for (int i = 0; i < g_cshd; i++)
     {
-        switch (g_ashd[i].shdk)
-        {
-            case SHDK_ThreeWay:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glShadowMap,   &g_ashd[i].atex[0], g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->shadowTexture   ,g_ashd[i].atex[0].aclut[0], false, true, g_ashd[i].shdk, g_ashd[i].rp, pbis);
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap,  &g_ashd[i].atex[0], g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->diffuseTexture  ,g_ashd[i].atex[0].aclut[1], false, true, g_ashd[i].shdk, g_ashd[i].rp, pbis);
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glSaturateMap, &g_ashd[i].atex[0], g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->saturateTexture ,g_ashd[i].atex[0].aclut[2], false, true, g_ashd[i].shdk, g_ashd[i].rp, pbis);
-            break;
+        SHD& shd = g_ashd[i];
 
-            default:
-            MakeTexture(g_ashd[i].atex[0].abmp[0]->glDiffuseMap, &g_ashd[i].atex[0], g_ashd[i].atex[0].abmp[0], g_ashd[i].atex[0].abmp[0]->diffuseTexture, g_ashd[i].atex[0].aclut[0], false, true, g_ashd[i].shdk, g_ashd[i].rp, pbis);
-            break;
+        if (shd.atex.empty())
+            continue;
+
+        TEX& tex = shd.atex[0];
+
+        for (int iframe = 0; iframe < (int)tex.abmp.size(); iframe++)
+        {
+            BMP* pbmp = tex.abmp[iframe];
+
+            if (!pbmp)
+                continue;
+
+            if (shd.shdk == SHDK_ThreeWay)
+            {
+                CLUT* ambientClut  = nullptr;
+                CLUT* diffuseClut  = nullptr;
+                CLUT* saturateClut = nullptr;
+
+                int clutBase = iframe * 3;
+
+                if (clutBase + 0 < (int)tex.aclut.size())
+                    ambientClut = tex.aclut[clutBase + 0];
+
+                if (clutBase + 1 < (int)tex.aclut.size())
+                    diffuseClut = tex.aclut[clutBase + 1];
+
+                if (clutBase + 2 < (int)tex.aclut.size())
+                    saturateClut = tex.aclut[clutBase + 2];
+
+                MakeTexture(pbmp->glShadowMap,  pbmp->hShadowMap,   &tex, pbmp, pbmp->shadowTexture,   ambientClut,  false, true, pbis);
+                MakeTexture(pbmp->glDiffuseMap, pbmp->hDiffuseMap,  &tex, pbmp, pbmp->diffuseTexture,  diffuseClut,  false, true, pbis);
+                MakeTexture(pbmp->glSaturateMap,pbmp->hSaturateMap, &tex, pbmp, pbmp->saturateTexture, saturateClut, false, true, pbis);
+            }
+            else
+            {
+                CLUT* clut = nullptr;
+
+                if (iframe < (int)tex.aclut.size())
+                    clut = tex.aclut[iframe];
+
+                MakeTexture(pbmp->glDiffuseMap, pbmp->hDiffuseMap, &tex, pbmp, pbmp->diffuseTexture, clut, false, true, pbis);
+            }
         }
     }
 
     for (int i = 0; i < g_cfontBrx; i++)
-        MakeTexture(g_afontBrx[i].m_pbmp->glDiffuseMap, &g_ashd[i].atex[0], g_afontBrx[i].m_pbmp, g_afontBrx[i].m_pbmp->diffuseTexture, g_afontBrx[i].m_pclut, true, false, g_ashd[i].shdk, g_ashd[i].rp, pbis);
+        MakeTexture(g_afontBrx[i].m_pbmp->glDiffuseMap, g_afontBrx[i].m_pbmp->hDiffuseMap, nullptr, g_afontBrx[i].m_pbmp, g_afontBrx[i].m_pbmp->diffuseTexture, g_afontBrx[i].m_pclut, true, false, pbis);
 }
 
 std::vector <byte> MakeBmp(BMP *pbmp, CBinaryInputStream *pbis)
 {
     std::vector <byte> bmpBuffer;
 
-    size_t bufferOff = textureDataStart + pbmp->baseOffset;
-    int width  = pbmp->bmpWidth;
-    int height = pbmp->bmpHeight;
+    size_t off  = textureDataStart + pbmp->baseOffset;
+    size_t size = static_cast<size_t>(pbmp->bmpWidth) * pbmp->bmpHeight;
 
-    bmpBuffer.resize(width * height);
-    pbis->file.seekg(bufferOff, SEEK_SET);
+    bmpBuffer.resize(size);
 
-    for (int i = 0; i < width * height; i++)
-        bmpBuffer[i] = pbis->U8Read();
+    pbis->file.seekg(off, std::ios::beg);
+    pbis->file.read(reinterpret_cast<char*>(bmpBuffer.data()), static_cast<std::streamsize>(size));
 
     return bmpBuffer;
 }
 
 std::vector <byte> MakePallete(CLUT *pclut, CBinaryInputStream *pbis)
 {
-    std::vector<byte> palleteBuffer;
-    size_t off = textureDataStart + pclut->baseOffset;
-    int numColors = pclut->numColors;
-    int colorSize = pclut->colorSize;
+    std::vector <byte> palleteBuffer;
 
-    palleteBuffer.resize(numColors * colorSize * 4);
-    pbis->file.seekg(off, SEEK_SET);
+    size_t off  = textureDataStart + pclut->baseOffset;
+    size_t size = static_cast<size_t>(pclut->numColors) * pclut->colorSize * 4;
 
-    for (int i = 0; i < numColors * colorSize * 4; ++i)
-        palleteBuffer[i] = pbis->U8Read();
+    palleteBuffer.resize(size);
+
+    pbis->file.seekg(off, std::ios::beg);
+    pbis->file.read(reinterpret_cast<char*>(palleteBuffer.data()), static_cast<std::streamsize>(size));
 
     return palleteBuffer;
 }
 
-void MakeTexture(GLuint &textureReference, TEX *ptex, BMP *pbmp, std::vector <byte> &texture, CLUT *pclut, bool fFlip, bool fMipMap, SHDK shdk, RP rp, CBinaryInputStream *pbis)
+void MakeTexture(GLuint& textureReference, uint64_t& textureHandle, TEX* ptex, BMP* pbmp, std::vector<byte>& texture, CLUT* pclut, bool fFlip, bool fMipMap, CBinaryInputStream* pbis)
 {
-    if (pbmp == nullptr || pclut == nullptr || textureReference != 0)
+    if (pbmp == nullptr || pclut == nullptr || textureReference == 0)
         return;
 
-    std::vector <byte> image;
-    std::vector <byte> pallete;
+    std::vector <byte> image   = MakeBmp(pbmp, pbis);
+    std::vector <byte> pallete = MakePallete(pclut, pbis);
 
-    image   = MakeBmp(pbmp, pbis);
-    pallete = MakePallete(pclut, pbis);
-
-    short width  = pbmp->bmpWidth;
-    short height = pbmp->bmpHeight;
+    int width  = pbmp->bmpWidth;
+    int height = pbmp->bmpHeight;
 
     texture.resize(width * height * 4);
 
@@ -404,26 +649,25 @@ void MakeTexture(GLuint &textureReference, TEX *ptex, BMP *pbmp, std::vector <by
             texture[4 * i + 0] = pallete[index + 0];
             texture[4 * i + 1] = pallete[index + 1];
             texture[4 * i + 2] = pallete[index + 2];
-            texture[4 * i + 3] = pallete[index + 3] * 255 / 128;
+            texture[4 * i + 3] = pallete[index + 3] * 255u / 128u;
         }
     }
-
     else
     {
         for (int i = 0; i < width * height / 2; i++)
         {
-            byte index1 = image[i] >> 4;
-            byte index2 = image[i] & 0x0F;
+            int index1 = image[i] >> 4;
+            int index2 = image[i] & 0x0F;
 
             texture[8 * i + 0] = pallete[4 * index1 + 0];
             texture[8 * i + 1] = pallete[4 * index1 + 1];
             texture[8 * i + 2] = pallete[4 * index1 + 2];
-            texture[8 * i + 3] = pallete[4 * index1 + 3] * 255 / 128;
+            texture[8 * i + 3] = pallete[4 * index1 + 3] * 255u / 128u;
 
             texture[8 * i + 4] = pallete[4 * index2 + 0];
             texture[8 * i + 5] = pallete[4 * index2 + 1];
             texture[8 * i + 6] = pallete[4 * index2 + 2];
-            texture[8 * i + 7] = pallete[4 * index2 + 3] * 255 / 128;
+            texture[8 * i + 7] = pallete[4 * index2 + 3] * 255u / 128u;
         }
     }
 
@@ -432,69 +676,27 @@ void MakeTexture(GLuint &textureReference, TEX *ptex, BMP *pbmp, std::vector <by
         int rowSize = width * 4;
         std::vector<byte> tempRow(rowSize);
 
-        for (int y = 0; y < height / 2; ++y) {
-            byte *rowTop = &texture[y * rowSize];
-            byte *rowBottom = &texture[(height - 1 - y) * rowSize];
+        for (int y = 0; y < height / 2; ++y)
+        {
+            byte* rowTop = &texture[y * rowSize];
+            byte* rowBottom = &texture[(height - 1 - y) * rowSize];
 
             std::memcpy(tempRow.data(), rowTop, rowSize);
             std::memcpy(rowTop, rowBottom, rowSize);
             std::memcpy(rowBottom, tempRow.data(), rowSize);
         }
     }
-    
-    // Choose your final scale (net 2x is a great default for Sly 1)
-        //const int finalScale = 2;              // 2x final
-        //const SampleEdge edgeMode = SampleEdge::Wrap; // Wrap for tiling; Clamp for sprites/UI
 
-        //// 1) 4x nearest
-        //std::vector<byte> big;
-        //nearestScaleRGBA4x(texture, width, height, big);
-        //int bw = width * 4, bh = height * 4;
-
-        //// 2) small Gaussian blur in premult+linear (removes stair-steps/dither)
-        //gaussian3_premult_linear(big, bw, bh, edgeMode);
-
-        //// 3) downsample to final (gamma-aware bilinear)
-        //std::vector <byte> finalTex;
-        //int newW = width * finalScale;
-        //int newH = height * finalScale;
-        //resizeRGBA_bilinear_gamma(big, bw, bh, finalTex, newW, newH, edgeMode);
-
-        //// swap & update dimensions
-        //texture.swap(finalTex);
-        //width = (short)newW;
-        //height = (short)newH;
-    
-    glGenTextures(1, &textureReference);
     glBindTexture(GL_TEXTURE_2D, textureReference);
-
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    if (ptex->grftex & 1) {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    }
-    if (ptex->grftex & 2) {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    }
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
 
     if (fMipMap == true)
-    {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
         glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
-    }
+    /*texture.clear();
+    texture.shrink_to_fit();*/
 }
 
 void UpdateShaders(float dt)

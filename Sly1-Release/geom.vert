@@ -2,18 +2,15 @@
 
 layout (location = 0) in vec3 vertex;
 
-layout(std430, binding = 0) readonly buffer CMGL
+layout(std140, binding = 0) uniform CMGL
 {
     mat4 matWorldToClip;
     vec4 cameraPos;
 } cm;
 
-layout(std140, binding = 1)  uniform ROGEOM
-{
-    mat4 model;
-}op;
+uniform mat4 modelToClip;
 
 void main()
 {
-    gl_Position = cm.matWorldToClip * op.model * vec4(vertex, 1.0);;
+    gl_Position = modelToClip * vec4(vertex, 1.0);;
 }

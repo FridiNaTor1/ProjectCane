@@ -7,7 +7,7 @@ void StartupPrompt(PROMPT* pprompt)
 {
     g_tePrompt.m_ch = 45;
     g_tePrompt.m_rgba = { 0.0f, 0.294117659, 0.490196079, 1.0f };
-    
+
     g_tePrompt.m_dxExtra = 15.0;
     g_tePrompt.m_ryScaling = 0.6;
     g_tePrompt.m_rxScaling = 0.6;
@@ -44,14 +44,14 @@ void SetPrompt(PROMPT* pprompt, PRP prp, PRK prk)
     // Handle based on blot state
     BLOTS state = pprompt->blots;
 
-    if (state == BLOTS_Hidden) 
+    if (state == BLOTS_Hidden)
     {
         SetPromptPrk(pprompt, resolvedPrk);
         if (resolvedPrk != PRK_Nil && !pprompt->fActive) {
             PushUiActiveBlot(&g_ui, pprompt);
         }
     }
-    else if (state > BLOTS_Nil && state < BLOTS_Max && pprompt->prk != resolvedPrk) 
+    else if (state > BLOTS_Nil && state < BLOTS_Max && pprompt->prk != resolvedPrk)
     {
         if (resolvedPrk == PRK_Nil) {
             if (pprompt->fActive) {
@@ -214,12 +214,12 @@ void ExecutePrompt(PROMPT* pprompt)
         switch (respk)
         {
             // If the response is "Continue", reset the prompt (exit the pause menu).
-            case RESPK_Continue:
+        case RESPK_Continue:
             SetPrompt(pprompt, PRP_Basic, PRK_Nil);
             break;
 
             // If the response is "Map", handle the map option logic.
-            case RESPK_Map:
+        case RESPK_Map:
             // If no map is available, play an unavailable sound.
             //if (g_wmc.pwm == nullptr)
             //{
@@ -234,18 +234,18 @@ void ExecutePrompt(PROMPT* pprompt)
             break;
 
             // If the response is "Exit", exit the game and trigger the wipe effect.
-            case RESPK_Exit:
+        case RESPK_Exit:
             SetPrompt(pprompt, PRP_Basic, PRK_Nil);
             //TriggerDefaultExit(1, WIPEK_Fade);
             break;
 
             // If the response is "Quit", show the quit confirmation prompt.
-            case RESPK_Quit:
+        case RESPK_Quit:
             SetPrompt(pprompt, PRP_Basic, PRK_QuitConfirm);
             break;
 
             // Default case (no action needed).
-            default:
+        default:
             break;
         }
         break;
@@ -374,7 +374,7 @@ void OnPromptActive(PROMPT* pprompt, int fActive)
         pprompt->irespk = 0;
         pprompt->pvtblot->pfnShowBlot(pprompt);
         g_joy.StartJoySelection();
-        
+
         pprompt->fActive = fActive;
     }
 }
@@ -408,11 +408,11 @@ void UpdatePromptActive(PROMPT* pprompt, JOY* pjoy)
 
     // Special case: Attract menu using BTN_A (Cross)
     if (pjoy->IsPressed(BTN_CROSS) && prk == PRK_AttractMenu) {
-        
+
         SetPrompt(pprompt, PRP_Basic, PRK_MemcardEraseConfirm);
         return;
     }
-    
+
     if (pjoy->IsPressed(BTN_CROSS)) {
         ExecutePrompt(pprompt);
         return;
@@ -428,21 +428,21 @@ void CancelPrompt(PROMPT* pprompt)
     }
 
     switch (pprompt->prk) {
-        case PRK_PauseMenu:
-        case PRK_MemcardEraseConfirm:
-        case PRK_AttractMenu:
+    case PRK_PauseMenu:
+    case PRK_MemcardEraseConfirm:
+    case PRK_AttractMenu:
         // These prompts can only be cancelled if the timer condition is met
         if (!allowCancel) {
             return;
         }
         break;
 
-        case PRK_QuitConfirm:
+    case PRK_QuitConfirm:
         // Quit confirm always returns to Pause menu
         SetPrompt(pprompt, PRP_Basic, PRK_PauseMenu);
         return;
 
-        case PRK_OptionsMenu:
+    case PRK_OptionsMenu:
         // Options menu can only be cancelled if the timer allows
         if (!allowCancel) {
             return;
@@ -457,7 +457,7 @@ void CancelPrompt(PROMPT* pprompt)
         return;
         break;
 
-        default:
+    default:
         // For all other prompt kinds, fall through to generic cancel
         break;
     }
@@ -471,106 +471,171 @@ void DrawPrompt(PROMPT* pprompt)
     if (!pprompt || pprompt->blots == BLOTS_Hidden || pprompt->uOn == 0.0f)
         return;
 
-    float scale = pprompt->uOn;
-    float dx = pprompt->dx * scale;
-    float dy = pprompt->dy * scale;
+    const float uOn = pprompt->uOn;
 
-    float centerX = pprompt->xOn + pprompt->dx * 0.5f;
-    float centerY = pprompt->yOn + pprompt->dy * 0.5f;
+    // --- Size scales by uOn (matches original)
+    const float dx = pprompt->dx * uOn;
+    const float dy = pprompt->dy * uOn;
 
-    float x = pprompt->xOn * scale + centerX * (1.0f - scale);
-    float y = pprompt->yOn * scale + centerY * (1.0f - scale);
+    // --- Position slides from "center-ish" toward xOn/yOn (matches original)
+    // Original uses (xOn + dx*0.5) where dx is the *unscaled* prompt width.
+    const float centerX = pprompt->xOn + pprompt->dx * 0.5f;
+    const float centerY = pprompt->yOn + pprompt->dy * 0.5f;
 
-    float t = sinf(g_clock.tReal * 10.0f);
-    float pulse = t * 0.5f + 0.5f;
-    PRK prk = pprompt->prk;
+    const float x = pprompt->xOn * uOn + centerX * (1.0f - uOn);
+    float       y = pprompt->yOn * uOn + centerY * (1.0f - uOn);
+
+    // --- Pulse (matches original)
+    const float s = sinf(g_clock.tReal * 10.0f);
+    const float pulse = s * 0.5f + 0.5f;          // [0..1]
+    const float pulse2 = pulse * pulse;           // original uses pulse^2
+
+    const PRK prk = pprompt->prk;
     PRD* prd = &s_mpprkprd[prk];
 
-    CTextBox textBox;
-    textBox.SetPos(x, y);
-    textBox.SetSize(dx, dy);
+    CTextBox tb;
 
-    glm::vec4 baseColor = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
-    textBox.SetTextColor(&baseColor);
-    textBox.SetHorizontalJust(JH_Left);
-    textBox.SetVerticalJust(JV_Top);
+    // Colors from original byte values:
+    // base for text: 0x5f 0x5f 0x5f 0xff
+    glm::vec4 kTextBase = glm::vec4(0x5f, 0x5f, 0x5f, 0xff) / 255.0f;
 
-    // Edge rendering with color animation if no responses
-    if (pprompt->pte) {
-        if (prd->crespk == 0) {
-            glm::vec4 yellow = glm::vec4(0.44f, 0.56f, 0.0f, 1.0f);
-            glm::vec4 edgeColor = glm::mix(baseColor, yellow, pulse * pulse);
-            pprompt->pte->m_rgba = edgeColor;
-        }
+    // edge pulse target was set to 0x6f, 'o','o', 0xff in decompile.
+    // 'o' is 0x6f, so effectively 0x6f 0x6f 0x6f 0xff.
+    const glm::vec4 kEdgeTarget = glm::vec4(0x6f, 0x6f, 0x6f, 0xff) / 255.0f;
+
+    // Selected option color: 0x6f 0x6f (0x2f + pulse*64) 0xff
+    auto selectedColor = [&](float p01) -> glm::vec4 {
+        const float blue = (47.0f + p01 * 64.0f) / 255.0f; // 0x2f..0x6f
+        return glm::vec4(0x6f / 255.0f, 0x6f / 255.0f, blue, 1.0f);
+        };
+
+    // ---------------------------------------------------------------------
+    // Edge rendering (pte)
+    // ---------------------------------------------------------------------
+    if (pprompt->pte)
+    {
+        // Setup tb like original for the edge rect call
+        tb.SetPos(x, y);
+        tb.SetSize(dx, dy);
+
+        // Original sets tb text color to 0x80/0x80/0x80 for this edge call.
+        glm::vec4 kEdgeTbColor = glm::vec4(0x80, 0x80, 0x80, 0xff) / 255.0f;
+        tb.SetTextColor(&kEdgeTbColor);
+        tb.SetHorizontalJust(JH_Left);
+        tb.SetVerticalJust(JV_Top);
+
+        glm::vec4 savedEdge = pprompt->pte->m_rgba;
+
+        // If no responses, pulse the EDGE color between current and target, then restore.
+        if (prd->crespk == 0)
+            pprompt->pte->m_rgba = glm::mix(savedEdge, kEdgeTarget, pulse2);
+
         if (pprompt->pte->m_pfont)
-            pprompt->pte->m_pfont->EdgeRect(pprompt->pte, &textBox);
+            pprompt->pte->m_pfont->EdgeRect(pprompt->pte, &tb);
+
+        // Restore edge color (original does this when it modified it)
+        if (prd->crespk == 0)
+            pprompt->pte->m_rgba = savedEdge;
     }
 
-    // Draw prompt text if available
-    if (prd->pchz != nullptr) {
-        float scaled = pprompt->uOn * prd->rScale;
-        pprompt->pfont->PushScaling(scaled, scaled);
+    // ---------------------------------------------------------------------
+    // Optional header / prompt text (pchz)
+    // ---------------------------------------------------------------------
+    if (prd->pchz != nullptr)
+    {
+        const float headerScale = uOn * prd->rScale;
+        pprompt->pfont->PushScaling(headerScale, headerScale);
 
-        textBox.SetPos(x, y);
-        textBox.SetSize(dx, dy);
+        tb.SetPos(x, y);
+        tb.SetSize(dx, dy);
+        tb.SetTextColor(&kTextBase);
+        tb.SetHorizontalJust(JH_Center);
+        tb.SetVerticalJust(JV_Top);
 
-        glm::vec4 white = glm::vec4(0.37f, 0.37f, 0.37f, 1.0f);
-        textBox.SetTextColor(&white);
-        textBox.SetHorizontalJust(JH_Center);
-        textBox.SetVerticalJust(JV_Top);
-
-        pprompt->pfont->DrawPchz((char*)prd->pchz, &textBox);
+        pprompt->pfont->DrawPchz((char*)prd->pchz, &tb);
 
         y += pprompt->pfont->DyWrapPchz((char*)prd->pchz, 500.0f);
         pprompt->pfont->PopScaling();
     }
 
-    // Draw selectable response options
-    pprompt->pfont->PushScaling(scale, scale);
+    // ---------------------------------------------------------------------
+    // Response options
+    // ---------------------------------------------------------------------
+    pprompt->pfont->PushScaling(uOn, uOn);
 
-    float lineHeight = static_cast<float>(pprompt->pfont->m_dyUnscaled) * pprompt->pfont->m_ryScale;
-    float textX = x;
-    float textY = y;
+    // Base line height at the current (uOn) scaling level
+    const float baseLineH = (float)pprompt->pfont->m_dyUnscaled * pprompt->pfont->m_ryScale;
 
-    if (!prd->fVertical) {
-        float totalWidth = 0.0f;
-        for (int i = 0; i < prd->crespk; ++i) {
-            const char* option = AchzFromRespk(prd->arespk[i]);
-            totalWidth += pprompt->pfont->DxFromPchz(const_cast<char*>(option));
+    float cursorX = x;
+    float cursorY = y;
+
+    // Horizontal layout: compute total width to center (matches original structure)
+    if (!prd->fVertical)
+    {
+        float totalW = 0.0f;
+        for (int i = 0; i < prd->crespk; ++i)
+        {
             if (i > 0)
-                totalWidth += pprompt->pfont->m_dxSpaceUnscaled * pprompt->pfont->m_rxScale;
+                totalW += (float)pprompt->pfont->m_dxSpaceUnscaled * pprompt->pfont->m_rxScale;
+
+            const char* opt = AchzFromRespk(prd->arespk[i]);
+            totalW += pprompt->pfont->DxFromPchz(const_cast<char*>(opt));
         }
-        textX += (dx - totalWidth) * 0.5f;
+        cursorX = x + (dx - totalW) * 0.5f;
     }
 
-    for (int i = 0; i < prd->crespk; ++i) {
-        const char* option = AchzFromRespk(prd->arespk[i]);
+    for (int i = 0; i < prd->crespk; ++i)
+    {
+        const char* opt = AchzFromRespk(prd->arespk[i]);
 
-        glm::vec4 color = (i == pprompt->irespk)
-            ? glm::mix(glm::vec4(0.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), pulse * pulse)
-            : glm::vec4(0.37f, 0.37f, 0.37f, 1.0f);
+        // Measure at baseline scaling (uOn only)
+        const float preW = pprompt->pfont->DxFromPchz(const_cast<char*>(opt));
 
-        float textWidth = pprompt->pfont->DxFromPchz(const_cast<char*>(option));
-        float xDraw = textX;
-        float yDraw = textY;
+        // Selected entry: special color + slight scale bump
+        glm::vec4 color = kTextBase;
+        float itemScale = 1.0f;
 
-        if (prd->fVertical) {
-            xDraw += (dx - textWidth) * 0.5f;
+        if (i == pprompt->irespk)
+        {
+            color = selectedColor(pulse);
+            itemScale = (1.0f - pulse) * 0.1f + 1.0f; // 1.0 .. 1.1
         }
 
-        textBox.SetPos(xDraw, yDraw);
-        textBox.SetSize(dx, lineHeight);
-        textBox.SetTextColor(&color);
-        textBox.SetHorizontalJust(JH_Left);
-        textBox.SetVerticalJust(JV_Top);
+        // Original multiplies the per-item scaling by uOn as well
+        const float finalScale = uOn * itemScale;
+        pprompt->pfont->PushScaling(finalScale, finalScale);
 
-        pprompt->pfont->DrawPchz((char*)option, &textBox);
+        // Re-measure under per-item scaling for centering offsets (matches original intent)
+        const float postW = pprompt->pfont->DxFromPchz(const_cast<char*>(opt));
+        const float itemH = (float)pprompt->pfont->m_dyUnscaled * pprompt->pfont->m_ryScale;
 
-        if (!prd->fVertical) {
-            textX += textWidth + pprompt->pfont->m_dxSpaceUnscaled * pprompt->pfont->m_rxScale;
+        float drawX = cursorX + (preW - postW) * 0.5f;
+        float drawY = cursorY + (baseLineH - itemH) * 0.5f;
+
+        if (prd->fVertical)
+        {
+            // In vertical mode, each item is centered in the prompt box width (original behavior)
+            drawX = x + (dx - postW) * 0.5f;
         }
-        else {
-            textY += lineHeight;
+
+        tb.SetPos(drawX, drawY);
+        tb.SetSize(dx, itemH);
+        tb.SetTextColor(&color);
+        tb.SetHorizontalJust(JH_Left);
+        tb.SetVerticalJust(JV_Top);
+
+        pprompt->pfont->DrawPchz((char*)opt, &tb);
+
+        pprompt->pfont->PopScaling();
+
+        // Advance cursor like original
+        if (!prd->fVertical)
+        {
+            cursorX += preW + (float)pprompt->pfont->m_dxSpaceUnscaled * pprompt->pfont->m_rxScale;
+        }
+        else
+        {
+            cursorY += (float)pprompt->pfont->m_dyUnscaled * pprompt->pfont->m_ryScale;
         }
     }
 

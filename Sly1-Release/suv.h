@@ -1,5 +1,6 @@
 #pragma once
 #include "po.h"
+#include "shape.h"
 
 enum SVEK 
 {
@@ -162,6 +163,7 @@ int  GetSuvSize();
 void UpdateSuvXfWorld(SUV* psuv);
 void PostSuvLoad(SUV* psuv);
 void UpdateSuv(SUV* psuv, float dt);
+void UpdateSuvShapes(SUV* psuv);
 void RenderSuvSelf(SUV* psuv, CM* pcm, RO* pro);
 void CloneSuv(SUV* psuv, SUV* psuvBase);
 void DeleteSuv(SUV* psuv);

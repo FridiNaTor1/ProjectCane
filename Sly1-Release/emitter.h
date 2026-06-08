@@ -79,7 +79,7 @@ struct BOX
 };
 struct EMITCRV 
 {
-    std::shared_ptr <CRV> pcrv;
+    CRV *pcrv;
 };
 struct SKEL 
 {
@@ -87,6 +87,21 @@ struct SKEL
     struct SKELP* askelp;
     float gTotalWeight;
 };
+
+struct EMITTRI {
+    int aipos[3];
+    float sArea;
+};
+
+struct SKELP {
+    OID aoid[2];
+    float agDensity[2];
+    float asRadius[2];
+    struct ALO* apalo[2];
+    float s;
+    float gWeight;
+};
+
 struct EMITMESH 
 {
     int cpos;
@@ -214,6 +229,39 @@ struct EMITB
     }emitx;
     char* pchzName;
 };
+
+struct EMITG
+{
+    struct BLIPG** ppblipg;
+    struct RIPG** ppripg;
+    struct LO* ploSubscribe;
+};
+
+struct EMITGEN 
+{
+    std::vector <glm::vec3> apos;
+    std::vector <glm::vec3> av;
+    std::vector <float> atCreated; 
+    std::vector <float> atDestroy;
+    int fConvertPosVec;
+};
+
+struct EMITOLXF {
+    glm::vec3 posLocal;
+    glm::mat3 matLocal;
+    glm::vec3 vLocal;
+    glm::vec3 wLocal;
+};
+
+struct EMITVX 
+{
+    int cParticlePerRing;
+    float dradTiltRing;
+    float dradPanSlice;
+    float radTiltMin;
+    float radPanMin;
+};
+
 class EXPL : public XFM
 {
 	public:
@@ -313,18 +361,18 @@ int* GetEmitterfCountIsDensity(EMITTER* pemitter);
 void SetEmitterfCountIsDensity(EMITTER* pemitter, bool fCountDensity);
 void SetEmitterOidReference(EMITTER* pemitter, OID oidReference);
 OID* GetEmitterOidReference(EMITTER* pemitter);
-void* GetEmitterOidRender(EMITTER* pemitter);
-void  SetEmitterOidRender(EMITTER* pemitter, OID oidRender);
-void* GetEmitterOidTouch(EMITTER* pemitter);
-void  SetEmitterOidTouch(EMITTER* pemitter, OID oidTouch);
-void* GetEmitterOidNextRender(EMITTER* pemitter); 
-void  SetEmitterOidNextRender(EMITTER* pemitter, OID oidNextRender);
-void* GetEmitterOidGroup(EMITTER* pemitter);
-void  SetEmitterOidGroup(EMITTER* pemitter, OID oidGroup);
+void*GetEmitterOidRender(EMITTER* pemitter);
+void SetEmitterOidRender(EMITTER* pemitter, OID oidRender);
+void*GetEmitterOidTouch(EMITTER* pemitter);
+void SetEmitterOidTouch(EMITTER* pemitter, OID oidTouch);
+void*GetEmitterOidNextRender(EMITTER* pemitter); 
+void SetEmitterOidNextRender(EMITTER* pemitter, OID oidNextRender);
+void*GetEmitterOidGroup(EMITTER* pemitter);
+void SetEmitterOidGroup(EMITTER* pemitter, OID oidGroup);
 void PauseEmitter(EMITTER* pemitter, float dtPause);
 void GetEmitterPaused(EMITTER* pemitter, int* pfPaused);
-void* GetEmitterOidShape(EMITTER* pemitter);
-void  SetEmitterOidShape(EMITTER* pemitter, OID oidShape);
+void*GetEmitterOidShape(EMITTER* pemitter);
+void SetEmitterOidShape(EMITTER* pemitter, OID oidShape);
 EMITNK* PemitbEnsureEmitterEmitnk(EMITTER* pemitter);
 glm::vec3* PemitbEnsureEmitterEmitoVec(EMITTER* pemitter);
 LM* PemitbEnsureEmitterlmSOffset(EMITTER* pemitter);
@@ -335,7 +383,22 @@ void SetEmitterAutoPause(EMITTER* pemitter, int fAutoPause);
 void PauseEmitterIndefinite(EMITTER* pemitter);
 void RenderEmitterSelf(EMITTER* pemitter, CM* pcm, RO* pro);
 void BindEmitter(EMITTER* pemitter);
+void InitEmitb(EMITB* pemitb);
+void BindEmitb(EMITB* pemitb, LO* ploContext);
+void SetBlipgEmitb(BLIPG* pblipg, EMITB* pemitb);
+void SetRipgEmitb(RIPG* pripg, EMITB* pemitb);
+void SetEmitdvEmitb(EMITDV* pemitdv, EMITB* pemitb);
 void PostEmitterLoad(EMITTER* pemitter);
+void OnEmitterValuesChanged(EMITTER* pemitter);
+void EmitParticles(int cParticle, EMITB* pemitb, EMITG* pemitg);
+void ModifyEmitterParticles(EMITTER* pemitter);
+void OriginateParticles(int cParticle, EMITB* pemitb, EMITGEN* pemitgen);
+void CalculateEmitvx(int cParticlePerRing, LM* plmTilt, int cParticle, EMITVX* pemitvx);
+void ChooseEmitoPos(EMITO* pemito, int iParticle, int cParticle, glm::vec3* pposRet, glm::vec3* pnormalRet);
+void ChooseEmitvVelocityAge(EMITV* pemitv, EMITVX* pemitvx, EMITO* pemito, int iParticle, glm::vec3* ppos, glm::vec3* pnormal, glm::vec3* pv, float* ptCreated, float* ptDestroy);
+void ChooseEmitVelocity(EMITVX* pemitvx, float uRandom, float rSvz, LM* plmSv, glm::vec3* pvecNormal, int iParticle, glm::vec3* pv);
+void ConvertEmitoPosVec(EMITO* pemito, glm::vec3* ppos, glm::vec3* pv);
+void EmitBlips(EMITB* pemitb, EMITG* pemitg, int cblipeRequested, glm::vec3* apos, glm::vec3* av, float* atCreated, float* atDestroy, glm::vec3* aposFinal, glm::vec3* avFinal);
 void UpdateEmitter(EMITTER* pemitter, float dt);
 void DeleteEmitter(EMITTER *pemitter);
 

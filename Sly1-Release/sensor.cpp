@@ -95,7 +95,7 @@ void UpdateSensor(SENSOR* psensor, float dt)
 	UpdateSo(psensor, dt);
 }
 
-void DeleteSensor(SENSOR *psensor)
+void DeleteSensor(SENSOR* psensor)
 {
 	delete psensor;
 }
@@ -131,7 +131,7 @@ void LoadLasenFromBrx(LASEN* plasen, CBinaryInputStream* pbis)
 
 void CloneLasen(LASEN* plasen, LASEN* plasenBase)
 {
-	CloneSensor(plasen, plasenBase); // Assuming CloneSensor handles copying the base class (SENSOR) members
+	CloneSensor(plasen, plasenBase);
 
 	// Shallow copy of value members
 	plasen->cposBeamShapeMax = plasenBase->cposBeamShapeMax;
@@ -148,9 +148,7 @@ void CloneLasen(LASEN* plasen, LASEN* plasenBase)
 
 	// Shallow copy of array members
 	for (int i = 0; i < 16; ++i)
-	{
 		plasen->albeam[i] = plasenBase->albeam[i];
-	}
 
 	// Shallow copy of other struct members
 	plasen->dleBusyLasen = plasenBase->dleBusyLasen;
@@ -235,8 +233,7 @@ void BindLasen(LASEN* plasen)
 		dli.m_ppv = reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(pemitter) + dli.m_ibDle);
 	}
 
-	// Clip current lasen sphere unless flagged as "no vismap clip" (matches the mask test)
-	if ((*(unsigned long*)&plasen->bitfield & 0x03000000) != 0x02000000)
+	if (plasen->zons != 2)
 		ClipVismapSphereOneHop(plasen->psw->pvismap, &(plasen->xf).posWorld, plasen->sRadiusRenderAll, &plasen->grfzon);
 
 	// Propagate expanded radius up the parent chain based on local offset length + child radius
@@ -260,7 +257,7 @@ void BindLasen(LASEN* plasen)
 
 			parent->sRadiusRenderAll = needed;
 
-			if ((*(unsigned long*)&parent->bitfield & 0x03000000) != 0x02000000)
+			if (parent->zons != 2)
 				ClipVismapSphereOneHop(parent->psw->pvismap, &(parent->xf).posWorld, needed, &parent->grfzon);
 
 			// Walk up
@@ -278,48 +275,49 @@ void PostLasenLoad(LASEN* plasen)
 {
 	PostAloLoad(plasen);
 
-	//for (int i = 0; i < plasen->clbeam; ++i) {
-	//	LBEAM* pbeam = &plasen->albeam[i];
+	for (int i = 0; i < plasen->clbeam; ++i) 
+	{
+		LBEAM* pbeam = &plasen->albeam[i];
 
-	//	// Remove the shape's LO
-	//	if (pbeam->pshape && pbeam->pshape->pvtlo->pfnRemoveLo) {
-	//		pbeam->pshape->pvtlo->pfnRemoveLo((LO*)pbeam);
-	//	}
+		// Remove the shape's LO
+		if (pbeam->pshape && pbeam->pshape->pvtlo->pfnRemoveLo) {
+			pbeam->pshape->pvtlo->pfnRemoveLo(pbeam->pshape);
+		}
 
-	//	if (i == 0) {
-	//		// Skip cloning damage emitters for beam 0 (used as source template)
-	//		continue;
-	//	}
+		if (i == 0) {
+			// Skip cloning damage emitters for beam 0 (used as source template)
+			continue;
+		}
 
-	//	int clemitDamage = plasen->albeam[0].clemitDamage;
-	//	pbeam->clemitDamage = clemitDamage;
+		int clemitDamage = plasen->albeam[0].clemitDamage;
+		pbeam->clemitDamage = clemitDamage;
 
-	//	if (clemitDamage > 0) {
-	//		LEMIT* dstEmit = pbeam->alemitDamage;
-	//		LEMIT* srcEmit = plasen->albeam[0].alemitDamage;
+		if (clemitDamage > 0) {
+			LEMIT* dstEmit = pbeam->alemitDamage;
+			LEMIT* srcEmit = plasen->albeam[0].alemitDamage;
 
-	//		for (int j = 0; j < clemitDamage; ++j) {
-	//			EMITTER* pemitter = (EMITTER*)PloCloneLo((LO*)srcEmit->pemitter, plasen->psw, (ALO*)plasen);
-	//			dstEmit->pemitter = pemitter;
+			for (int j = 0; j < clemitDamage; ++j) {
+				EMITTER* pemitter = (EMITTER*)PloCloneLo((LO*)srcEmit->pemitter, plasen->psw, (ALO*)plasen);
+				dstEmit->pemitter = pemitter;
 
-	//			if (pemitter && pemitter->pvtalo->pfnBindAlo) {
-	//				pemitter->pvtalo->pfnBindAlo(pemitter);
-	//			}
+				if (pemitter && pemitter->pvtalo->pfnBindAlo) {
+					pemitter->pvtalo->pfnBindAlo(pemitter);
+				}
 
-	//			if (pemitter && pemitter->pvtlo->pfnPostLoLoad) {
-	//				pemitter->pvtlo->pfnPostLoLoad(pemitter);
-	//			}
+				if (pemitter && pemitter->pvtlo->pfnPostLoLoad) {
+					pemitter->pvtlo->pfnPostLoLoad(pemitter);
+				}
 
-	//			dstEmit->fScorch = srcEmit->fScorch;
+				dstEmit->fScorch = srcEmit->fScorch;
 
-	//			++dstEmit;
-	//			++srcEmit;
-	//		}
-	//	}
-	//}
+				++dstEmit;
+				++srcEmit;
+			}
+		}
+	}
 
-	// Set jtOnlyTriggerObject flag based on g_pjt
-	//plasen->fJtOnlyTriggerObject = FOnlySensorTriggerObject(plasen, g_pjt);
+	 //Set jtOnlyTriggerObject flag based on g_pjt
+	/*plasen->fJtOnlyTriggerObject = FOnlySensorTriggerObject(plasen, g_pjt);*/
 
 	plasen->pvtlasen->pfnSetLasenSensors(plasen, plasen->sensorsInitial);
 }
@@ -480,6 +478,27 @@ void SetLasenSensors(LASEN* plasen, SENSORS sensors)
 	SetSensorSensors(plasen, sensors);
 }
 
+void FreezeLasen(LASEN* plasen, int fFreeze)
+{
+	FreezeSo(plasen, fFreeze);
+
+	if (fFreeze == 0)
+	{
+		AppendDlEntry(&plasen->psw->dlBusyLasen, plasen);
+		plasen->fBusyLasen = 1;
+	}
+	else
+	{
+		if (plasen->fBusyLasen != 0)
+		{
+			RemoveDlEntry(&plasen->psw->dlBusyLasen, plasen);
+			plasen->fBusyLasen = 0;
+		}
+	}
+
+	g_fLasenBusyListChange = 1;
+}
+
 void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro)
 {
 	RenderSoSelf(plasen, pcm, pro);
@@ -607,7 +626,7 @@ void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro)
 	}
 }
 
-void DeleteLasen(LASEN *plasen)
+void DeleteLasen(LASEN* plasen)
 {
 	delete plasen;
 }
@@ -1012,6 +1031,14 @@ PRSEN* NewPrsen()
 void InitPrsen(PRSEN* pprsen)
 {
 	InitSensor(pprsen);
+
+	pprsen->iframeDisablingFlash = -1;
+	pprsen->iframeSenseStart = -1;
+	pprsen->iframeSenseEnd = -1;
+	pprsen->iframeDamageStart = -1;
+	pprsen->iframeDamageEnd = -1;
+	pprsen->iframeDisabledStart = -1;
+	pprsen->iframeDisabledEnd = -1;
 }
 
 int GetPrsenSize()
@@ -1057,7 +1084,7 @@ void UpdatePrsen(PRSEN* pprsen, float dt)
 	UpdateSensor(pprsen, dt);
 }
 
-void DeletePrsen(PRSEN *ppprsen)
+void DeletePrsen(PRSEN* ppprsen)
 {
 	delete ppprsen;
 }
@@ -1157,3 +1184,5 @@ SNIP s_asnipLasen[2] =
 	2, (OID)650, offsetof(LASEN, paloRenderSense),
 	2, (OID)651, offsetof(LASEN, paloRenderDamage)
 };
+
+int g_fLasenBusyListChange = 0;

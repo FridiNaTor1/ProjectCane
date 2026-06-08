@@ -471,4 +471,5 @@ void RenderJtSelf(JT* pjt, CM* pcm, RO* pro);
 int  GetJtSize();
 void DeleteJt(JT* pjt);
 
+extern SNIP s_asnipLoad[1];
 extern inline JT *g_pjt = nullptr;

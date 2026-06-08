@@ -13,7 +13,7 @@ void InitSwLightDl(SW* psw)
 void InitLight(LIGHT* plight)
 {
 	plight->lightk = LIGHTK_Direction;
-	*(unsigned long*)&plight->bitfield = *(unsigned long*)&plight->bitfield | 0x10000000000;
+	plight->fNoFreeze = 1;
 	plight->normalLocal.x = 0.0;
 	plight->normalLocal.y = 0.0;
 	plight->normalLocal.z = 1.0;
@@ -30,7 +30,7 @@ void InitLight(LIGHT* plight)
 	RebuildLightFrustrum(plight);
 	InitAlo(plight);
 
-	numRl++;
+	numSwLights++;
 }
 
 int GetLightSize()
@@ -51,9 +51,9 @@ void OnLightRemove(LIGHT* plight)
 }
 
 void RebuildLightFrustrum(LIGHT* plight)
-{ 
+{
 	// 1) Clamp cone and hotspot angles
-	float xfov = glm::clamp(plight->degCone,    0.0f, 175.0f); // outer cone
+	float xfov = glm::clamp(plight->degCone, 0.0f, 175.0f); // outer cone
 	float yfov = glm::clamp(plight->degHotSpot, 0.0f, xfov);   // inner hotspot
 
 	// 2) Convert to tan(half-angle)
@@ -86,6 +86,53 @@ void UpdateLightXfWorldHierarchy(LIGHT* plight)
 {
 	UpdateAloXfWorldHierarchy(plight);
 	RebuildLight(plight);
+	UpdateLightBeamGrfzon(plight);
+}
+
+void UpdateLightBeamGrfzon(LIGHT* plight)
+{
+	if (!plight || plight->fDynamic == 0)
+		return;
+
+	switch (plight->lightk)
+	{
+		case LIGHTK_Direction:
+		plight->grfzon = 0x0FFFFFFF;
+		break;
+
+		case LIGHTK_Position:
+		ClipVismapSphereOneHop(plight->psw->pvismap, &(plight->xf).posWorld, (plight->lmFallOffS).gMax, &plight->grfzon);
+		break;
+
+		case LIGHTK_Frustrum:
+		case LIGHTK_Spot:
+		{
+			float gMax = (plight->lmFallOffS).gMax;
+
+			float halfAngleRad = glm::radians(plight->degCone * 0.5f);
+			float baseRadius = std::tanf(halfAngleRad) * gMax;
+
+			float halfLen = gMax * 0.5f;
+
+			// Forward vector from look-at matrix (matches original direction multiply)
+			glm::vec3 forward = -glm::vec3(plight->matLookAt[2]);
+
+			float lenSq = glm::dot(forward, forward);
+			if (lenSq > 0.0f)
+				forward *= glm::inversesqrt(lenSq);
+
+			glm::vec3 posBeamWorld = glm::vec3((plight->xf).posWorld) + forward * halfLen;
+
+			// Bounding sphere radius
+			float sphereRadius = std::sqrt(halfLen * halfLen + baseRadius * baseRadius);
+
+			ClipVismapSphereOneHop(plight->psw->pvismap, &posBeamWorld, sphereRadius, &plight->grfzon);
+		}
+		break;
+
+		default:
+		break;
+	}
 }
 
 void CloneLight(LIGHT* plight, LIGHT* plightBase)
@@ -107,8 +154,6 @@ void CloneLight(LIGHT* plight, LIGHT* plightBase)
 
 	// Clone the falloff vectors
 	plight->agFallOff = plightBase->agFallOff;
-	//plight->falloff0Frustum = plightBase->falloff0Frustum;
-	//plight->falloff1Frustum = plightBase->falloff1Frustum;
 
 	// Clone the matrix values (frustum and matLookAt)
 	plight->frustum = plightBase->frustum;
@@ -138,9 +183,7 @@ void CloneLight(LIGHT* plight, LIGHT* plightBase)
 
 	// Clone the frustrum vector array (size 6)
 	for (int i = 0; i < 6; ++i)
-	{
 		plight->avecFrustrum[i] = plightBase->avecFrustrum[i];
-	}
 
 	// Clone the grfzonBeam (int value)
 	plight->grfzonBeam = plightBase->grfzonBeam;
@@ -149,10 +192,10 @@ void CloneLight(LIGHT* plight, LIGHT* plightBase)
 	plight->fDynamic = plightBase->fDynamic;
 	plight->fExcludeDynamicObjects = plightBase->fExcludeDynamicObjects;
 
-	// Clone the DLE structure (direct copy)
-	plight->dleLight = plightBase->dleLight;
+	if (plight->fDynamic == 1)
+		allSwDynamicLights.push_back(plight);
 
-	numRl++;
+	numSwLights++;
 }
 
 void AddLightToSw(LIGHT* plight)
@@ -162,10 +205,10 @@ void AddLightToSw(LIGHT* plight)
 	plight->pvtalo->pfnUpdateAloXfWorld(plight);
 }
 
-void FitLinearFunction(float x0, float y0, float x1, float y1, float &pdu, float &pru)
+void FitLinearFunction(float x0, float y0, float x1, float y1, float& pdu, float& pru)
 {
 	bool abs = FFloatsNear(x0, x1, 0.0001);
-	
+
 	if (abs == 0)
 	{
 		float fVar2 = (y1 - y0) / (x1 - x0);
@@ -173,7 +216,7 @@ void FitLinearFunction(float x0, float y0, float x1, float y1, float &pdu, float
 		pdu = y0 - fVar2 * x0;
 	}
 
-	else 
+	else
 	{
 		pru = 0.0;
 		pdu = y0;
@@ -186,9 +229,9 @@ void FitRecipFunction(float x0, float y0, float x1, float y1, float* pdu, float*
 	bool ABS = FFloatsNear(x0, x1, 0.0001);
 
 	if (ABS == 0) {
-		if (fVar2 <= abs(x0)) 
+		if (fVar2 <= abs(x0))
 		{
-			if (fVar2 <= abs(x1)) 
+			if (fVar2 <= abs(x1))
 			{
 				fVar2 = (x0 * x1 * (y1 - y0)) / (x0 - x1);
 				*pru = fVar2;
@@ -214,7 +257,7 @@ void ConvertFallOff(LM* plm, float* pdu, float* pru)
 	FitLinearFunction(plm->gMin, 1.0, plm->gMax, 0.0, *pdu, *pru);
 }
 
-void ConvertAngleStrength(float deg0, float g0, float deg1, float g1, float &pdu, float &pru)
+void ConvertAngleStrength(float deg0, float g0, float deg1, float g1, float& pdu, float& pru)
 {
 	float cos0 = cosf(deg0 * 0.008726647);
 	float cos1 = cosf(deg1 * 0.008726647);
@@ -237,7 +280,7 @@ void RebuildLight(LIGHT* plight)
 					plight->twps = TWPS_Shadow;
 			}
 
-			else 
+			else
 				plight->twps = TWPS_Shadow;
 		}
 
@@ -258,7 +301,7 @@ void RebuildLight(LIGHT* plight)
 		else
 			plight->twps = TWPS_Shadow;
 	}
-	
+
 	glm::vec3 rgba{};
 
 	if (plight->vecHighlight.z > 0.0001)
@@ -348,10 +391,10 @@ void RebuildLight(LIGHT* plight)
 		}
 
 		// Projection (still using your convention)
-		const float fovy   = 2.0f * std::atan(plight->ry);
+		const float fovy = 2.0f * std::atan(plight->ry);
 		const float aspect = plight->rx / plight->ry;
-		const float zNear  = 50.0f;
-		const float zFar   = gMax;
+		const float zNear = 50.0f;
+		const float zFar = gMax;
 
 		glm::mat4 matProj = glm::perspectiveRH_ZO(fovy, aspect, zNear, zFar);
 		glm::mat4 matView = glm::lookAtRH(eye, eye + Z, u);
@@ -388,8 +431,9 @@ void* GetLightKind(LIGHT* plight)
 void SetLightKind(LIGHT* plight, LIGHTK lightk)
 {
 	plight->lightk = lightk;
-	*(unsigned long*)&plight->bitfield = *(unsigned long*)&plight->bitfield & 0xfffffeffffffffff | (unsigned long)(lightk == LIGHTK_Direction) << 0x28;
+	plight->fNoFreeze = (lightk == LIGHTK_Direction);
 	RebuildLight(plight);
+	UpdateLightBeamGrfzon(plight);
 }
 
 void* GetLightHighlightColor(LIGHT* plight)
@@ -397,7 +441,7 @@ void* GetLightHighlightColor(LIGHT* plight)
 	return &plight->vecHighlight;
 }
 
-void SetLightHighlightColor(LIGHT* plight, glm::vec3 &pvecHighlight)
+void SetLightHighlightColor(LIGHT* plight, glm::vec3& pvecHighlight)
 {
 	plight->vecHighlight = pvecHighlight;
 	RebuildLight(plight);
@@ -467,6 +511,7 @@ void SetLightDirection(LIGHT* plight, glm::vec3& pvecDirection)
 {
 	plight->vecDirectionOrig = pvecDirection;
 	RebuildLight(plight);
+	UpdateLightBeamGrfzon(plight);
 }
 
 void* GetLightDynamic(LIGHT* plight)
@@ -480,6 +525,7 @@ void SetLightDynamic(LIGHT* plight, int fDynamic)
 	{
 		plight->fDynamic = fDynamic;
 		RebuildLight(plight);
+		allSwDynamicLights.push_back(plight);
 	}
 }
 
@@ -492,6 +538,7 @@ void SetLightFallOff(LIGHT* plight, LM* plm)
 {
 	plight->lmFallOffS = *plm;
 	RebuildLight(plight);
+	UpdateLightBeamGrfzon(plight);
 }
 
 void* GetLightConeAngle(LIGHT* plight)
@@ -504,6 +551,7 @@ void SetLightConeAngle(LIGHT* plight, float degCone)
 	plight->degCone = degCone;
 	RebuildLightFrustrum(plight);
 	RebuildLight(plight);
+	UpdateLightBeamGrfzon(plight);
 }
 
 void* GetLightHotSpotAngle(LIGHT* plight)
@@ -527,6 +575,7 @@ void SetLightFrustrumUp(LIGHT* plight, glm::vec3& pvecUpLocal)
 {
 	plight->vecUpLocal = pvecUpLocal;
 	RebuildLight(plight);
+	UpdateLightBeamGrfzon(plight);
 }
 
 void RemoveLightFromSw(LIGHT* plight)
@@ -534,22 +583,24 @@ void RemoveLightFromSw(LIGHT* plight)
 	RemoveDlEntry(&plight->psw->dlLight, plight);
 }
 
-void CreateSwDefaultLights(SW *psw)
+void CreateSwDefaultLights(SW* psw)
 {
-	LIGHT *plight;
-  
-	if ((g_grfdfl & 1U) != 0) {
-		plight = (LIGHT *)PloNew(CID_LIGHT, psw, nullptr, (OID)0x201,-1);
+	LIGHT* plight;
+
+	if ((g_grfdfl & 1U) != 0)
+	{
+		plight = (LIGHT*)PloNew(CID_LIGHT, psw, nullptr, (OID)0x201, -1);
 		SetLightHighlightColor(plight, g_vecHighlight);
-		SetLightHighlightAngle(plight,g_degHighlight);
-		SetLightMidtoneStrength(plight,g_gMidtone);
-		SetLightMidtoneAngle(plight,g_degMidtone);
-		SetLightShadowStrength(plight,g_gShadow);
-		SetLightShadowAngle(plight,g_degShadow);
+		SetLightHighlightAngle(plight, g_degHighlight);
+		SetLightMidtoneStrength(plight, g_gMidtone);
+		SetLightMidtoneAngle(plight, g_degMidtone);
+		SetLightShadowStrength(plight, g_gShadow);
+		SetLightShadowAngle(plight, g_degShadow);
 		SetLightDirection(plight, s_vecDirectionDefault);
 	}
 
-	if ((g_grfdfl & 2U) != 0) {
+	if ((g_grfdfl & 2U) != 0)
+	{
 		plight = (LIGHT*)PloNew(CID_LIGHT, psw, nullptr, (OID)0x201, -1);
 		SetLightKind(plight, LIGHTK_Position);
 		SetLightHighlightColor(plight, g_vecHighlight);
@@ -562,7 +613,8 @@ void CreateSwDefaultLights(SW *psw)
 		plight->pvtlight->pfnTranslateAloToPos(plight, s_posDefault);
 	}
 
-	if ((g_grfdfl & 4U) != 0) {
+	if ((g_grfdfl & 4U) != 0)
+	{
 		plight = (LIGHT*)PloNew(CID_LIGHT, psw, nullptr, (OID)0x201, -1);
 		SetLightKind(plight, LIGHTK_Frustrum);
 		SetLightHighlightColor(plight, g_vecHighlight);
@@ -575,8 +627,9 @@ void CreateSwDefaultLights(SW *psw)
 		SetLightFallOff(plight, &s_lmFallOffDefault);
 		plight->pvtlight->pfnTranslateAloToPos(plight, s_posDefault);
 	}
-  
-	if ((g_grfdfl & 8U) != 0) {
+
+	if ((g_grfdfl & 8U) != 0)
+	{
 		plight = (LIGHT*)PloNew(CID_LIGHT, psw, nullptr, (OID)0x201, -1);
 		SetLightKind(plight, LIGHTK_Spot);
 		SetLightHighlightColor(plight, g_vecHighlight);
@@ -591,198 +644,224 @@ void CreateSwDefaultLights(SW *psw)
 	}
 }
 
+static GLsizeiptr AlignUp(GLsizeiptr v, GLsizeiptr a) { return (v + a - 1) & ~(a - 1); }
+
 void AllocateLightBlkList()
 {
-	lightBlk.resize(numRl);
+	if (g_psw->dlLight.plightFirst == nullptr)
+		return;
 
-	glGenBuffers(1, &g_lightSsbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_lightSsbo);
-	// allocate once; we’ll update with glBufferSubData
-	GLsizeiptr sz = sizeof(LIGHTBLK) * numRl;
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sz, nullptr, GL_DYNAMIC_DRAW);
-	// bind to the same numeric binding you use in GLSL (binding = 2 above)
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, g_lightSsbo);
+	lightBlk.resize(numSwLights);
 
 	LIGHT* plight = g_psw->dlLight.plightFirst;
-
 	int idx = 0;
-	while (plight != nullptr)
+
+	while (plight != nullptr && idx < (int)lightBlk.size())
 	{
 		switch (plight->lightk)
 		{
 			case LIGHTK_Direction:
-			lightBlk[idx].lightk = plight->lightk;
-			lightBlk[idx].dir    = glm::vec4(plight->xf.matWorld[2], 0.0f);
-			lightBlk[idx].color  = glm::vec4(plight->rgbaColor, 0.0f);
-			lightBlk[idx].ru     = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
-			lightBlk[idx].du     = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
-			if (plight->fDynamic == true)
-				dynamicLightsIndices.push_back(idx);
-			idx++;
+		
+			lightBlk[idx].lightk   = plight->lightk;
+			lightBlk[idx].fDynamic = plight->fDynamic;
+			lightBlk[idx].dir      = glm::vec4(plight->xf.matWorld[2], 0.0f);
+			lightBlk[idx].color    = glm::vec4(plight->rgbaColor, 0.0f);
+			lightBlk[idx].ru       = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
+			lightBlk[idx].du       = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
 			break;
 
 			case LIGHTK_Position:
-			lightBlk[idx].lightk      = plight->lightk;
-			lightBlk[idx].pos         = glm::vec4(plight->xf.posWorld, 1.0f);
-			lightBlk[idx].color       = glm::vec4(plight->rgbaColor, 1.0f);
-			lightBlk[idx].constant    = plight->agFallOff.x;
-			lightBlk[idx].invDistance = plight->agFallOff.y;
-			lightBlk[idx].dst	      = plight->lmFallOffS.gMax;
-			lightBlk[idx].ru	      = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
-			lightBlk[idx].du	      = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
-
-			if (plight->fDynamic == true)
-				dynamicLightsIndices.push_back(idx);
-			idx++;
+		
+			lightBlk[idx].lightk   = plight->lightk;
+			lightBlk[idx].fDynamic = plight->fDynamic;
+			lightBlk[idx].pos      = glm::vec4(plight->xf.posWorld, 1.0f);
+			lightBlk[idx].color    = glm::vec4(plight->rgbaColor, 1.0f);
+			lightBlk[idx].constant = plight->agFallOff.x;
+			lightBlk[idx].invDst   = plight->agFallOff.y;
+			lightBlk[idx].dst      = plight->lmFallOffS.gMax;
+			lightBlk[idx].ru       = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
+			lightBlk[idx].du       = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
 			break;
 
 			case LIGHTK_Frustrum:
 			case LIGHTK_Spot:
 			lightBlk[idx].lightk       = plight->lightk;
+			lightBlk[idx].fDynamic     = plight->fDynamic;
+			lightBlk[idx].pos          = glm::vec4(plight->xf.posWorld, 1.0f);
 			lightBlk[idx].color        = glm::vec4(plight->rgbaColor, 1.0f);
 			lightBlk[idx].matFrustrum  = plight->frustum;
 			lightBlk[idx].falloffScale = plight->falloffScale;
 			lightBlk[idx].falloffBias  = plight->falloffBias;
 			lightBlk[idx].ru           = glm::vec4(plight->ltfn.ruShadow, plight->ltfn.ruMidtone, plight->ltfn.ruHighlight, 0.0f);
 			lightBlk[idx].du           = glm::vec4(plight->ltfn.duShadow, plight->ltfn.duMidtone, plight->ltfn.duHighlight, 0.0f);
-
-			if (plight->fDynamic == true)
-				dynamicLightsIndices.push_back(idx);
-			idx++;
 			break;
 		}
 
 		plight = plight->dleLight.plightNext;
+		++idx;
 	}
 
+	// ------------------------------------------------------------
+	// Main light SSBO
+	// ------------------------------------------------------------
+	glGenBuffers(1, &g_lightSsbo);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_lightSsbo);
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(LIGHTBLK) * numRl, lightBlk.data());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, g_lightSsbo);
 
-	// Active Lights
-	glGenBuffers(1, &activeLightsSbo);
-	const int capacity = std::min(numRl, MAX_LIGHTS);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, activeLightsSbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(int) + sizeof(int) * capacity, nullptr, GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, activeLightsSbo);
-	int zero = 0;
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(int), &zero);
+	const GLsizeiptr headerSize = sizeof(LightSSBOHeader);
+	const GLsizeiptr lightsSize = sizeof(LIGHTBLK) * lightBlk.size();
+	const GLsizeiptr totalSize = headerSize + lightsSize;
 
-	numRl = 0;
+	glBufferData(GL_SHADER_STORAGE_BUFFER, totalSize, nullptr, GL_DYNAMIC_DRAW);
+
+	LightSSBOHeader header = {};
+	header.numLights = (int)lightBlk.size();
+
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, headerSize, &header);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, headerSize, lightsSize, lightBlk.data());
+
+	// ------------------------------------------------------------
+	// Active-lights SSBO
+	// ------------------------------------------------------------
+	glGenBuffers(1, &g_activeLightsSsbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_activeLightsSsbo);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, g_activeLightsSsbo);
+
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ACTIVELIGHTS), &activeLights, GL_DYNAMIC_DRAW);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
-void PrepareSwLights(SW* psw, CM* pcm)
+bool FindSwDynamicLights(glm::vec3* pposCenter, float sRadius)
 {
-	numRl = 0;
-	const bool useZones = (g_fBsp != 0);
-	int idx = 0;
+	glm::vec3 center = *pposCenter;
 
-	for (LIGHT* Light = psw->dlLight.plightFirst; Light && numRl < MAX_LIGHTS; Light = Light->dleLight.plightNext, ++idx)
+	for (const LIGHT*plight : allSwDynamicLights)
 	{
-		if (useZones && ((Light->grfzon & pcm->grfzon) != pcm->grfzon))
-			continue;
-
-		switch (Light->lightk)
-		{
-			case LIGHTK_Direction:
-			activeLights.lightIndices[numRl] = idx;
-			++numRl;
-			break;
-
-			case LIGHTK_Position:
-			activeLights.lightIndices[numRl] = idx;
-			++numRl;
-			break;
-
-			case LIGHTK_Frustrum:
-			case LIGHTK_Spot:
-			activeLights.lightIndices[numRl] = idx;
-			++numRl;
-			break;
-		}
-	}
-
-	activeLights.numLights = numRl;
-
-	if (dynamicLightsIndices.size() > 0)
-	{
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_lightSsbo);
-		for (int i = 0; i < dynamicLightsIndices.size(); ++i)
-		{
-			int lightIndex = dynamicLightsIndices[i];
-			GLsizeiptr offset = sizeof(LIGHTBLK) * lightIndex;
-			glBufferSubData(GL_SHADER_STORAGE_BUFFER, offset, sizeof(LIGHTBLK), &lightBlk[lightIndex]);
-		}
-	}
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, activeLightsSbo);
-	int size = 4 + sizeof(int) * numRl;
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, size, &activeLights.numLights);
-}
-
-void FindSwLights(SW *psw, CM *pcm, glm::vec3 posCenter, float sRadius)
-{
-	numRl = 0;
-	int idx = 0;
-	const bool useZones = (g_fBsp != 0);
-	bool include = false;
-
-	for (LIGHT* plight = psw->dlLight.plightFirst; plight && numRl < 255; plight = plight->dleLight.plightNext, ++idx)
-	{
-		if (useZones && ((plight->grfzon & pcm->grfzon) != pcm->grfzon))
+		if (g_fBsp == 1 && ((plight->grfzon & g_pcm->grfzon) != g_pcm->grfzon))
 			continue;
 
 		switch (plight->lightk)
 		{
 			case LIGHTK_Direction:
-			activeLights.lightIndices[numRl] = idx;
-			numRl++;
-			break;
+			{
+				// Direction lights affect everything
+				return true;
+			}
 
 			case LIGHTK_Position:
 			{
-				// Sphere–sphere test: |Lp - C|^2 <= (r + R)^2
-				const glm::vec3 Lpos = *(glm::vec3*)&plight->xf.posWorld;
-				const float r = plight->lmFallOffS.gMax;
-				const glm::vec3 d = Lpos - posCenter;
-				const float Rsum = r + sRadius;
+				glm::vec3 d = glm::vec3(plight->xf.posWorld) - center;
+				float r = plight->lmFallOffS.gMax + sRadius;
 
-				if (glm::dot(d, d) > Rsum * Rsum)
-					break;
+				if (glm::dot(d, d) <= r * r)
+					return true;
 
-				activeLights.lightIndices[numRl] = idx;
-				numRl++;
 				break;
 			}
 
 			case LIGHTK_Frustrum:
 			case LIGHTK_Spot:
-			activeLights.lightIndices[numRl] = idx;
-			numRl++;
+			{
+				bool inside = true;
+
+				glm::mat4 M = plight->frustum;
+
+				// Extract clip planes (same pattern as your GLSL)
+				glm::vec4 planes[6];
+				planes[0] = M[3] + M[0]; // left
+				planes[1] = M[3] - M[0]; // right
+				planes[2] = M[3] + M[1]; // bottom
+				planes[3] = M[3] - M[1]; // top
+				planes[4] = M[3] + M[2]; // near
+				planes[5] = M[3] - M[2]; // far
+
+				for (int i = 0; i < 6; ++i)
+				{
+					glm::vec3 n = glm::vec3(planes[i]);
+					float len = glm::length(n);
+					if (len < 1e-6f)
+						continue; // degenerate plane, ignore
+
+					n /= len;
+					float d = planes[i].w / len;
+
+					float dist = glm::dot(n, center) + d;
+
+					if (dist < -sRadius)
+					{
+						inside = false;
+						break;
+					}
+				}
+
+				if (inside)
+					return true;
+
+				break;
+			}
+
+			default:
 			break;
 		}
 	}
 
-	activeLights.numLights = numRl;
+	return false;
+}
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, activeLightsSbo);
-	int size = 4 + sizeof(int) * numRl;
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, size, &activeLights.numLights);
+void PrepareSwLights(SW* psw, CM* pcm)
+{
+	bool useZones = (g_fBsp != 0);
+	GLsizeiptr headerSize = sizeof(LightSSBOHeader);
+
+	activeLights.numStaticLights  = 0;
+	activeLights.numDynamicLights = 0;
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_lightSsbo);
+
+	int idx = 0;
+	for (LIGHT* plight = psw->dlLight.plightFirst; plight; plight = plight->dleLight.plightNext, ++idx)
+	{
+		if (idx >= MAX_LIGHTS)
+			break;
+
+		if (useZones && ((plight->grfzon & pcm->grfzon) != pcm->grfzon))
+			continue;
+
+		if (plight->fDynamic)
+		{
+			if (activeLights.numDynamicLights < MAX_LIGHTS)
+			{
+				activeLights.dynamicLightIndices[activeLights.numDynamicLights++] = idx;
+				glBufferSubData(GL_SHADER_STORAGE_BUFFER, headerSize + (GLintptr)(sizeof(LIGHTBLK) * idx), sizeof(LIGHTBLK), &lightBlk[idx]);
+			}
+		}
+		else
+		{
+			if (activeLights.numStaticLights < MAX_LIGHTS)
+				activeLights.staticLightIndices[activeLights.numStaticLights++] = idx;
+		}
+	}
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, g_activeLightsSsbo);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(ACTIVELIGHTS), &activeLights);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 void DeallocateLightBlkList()
 {
 	lightBlk.clear();
 	lightBlk.shrink_to_fit();
-	dynamicLightsIndices.clear();
-	dynamicLightsIndices.shrink_to_fit();
 
-	numRl = 0;
+	allSwDynamicLights.clear();
+	allSwDynamicLights.shrink_to_fit();
 
 	glDeleteBuffers(1, &g_lightSsbo);
-	glDeleteBuffers(1, &activeLightsSbo);
+	glDeleteBuffers(1, &g_activeLightsSsbo);
 }
 
-void DeleteLight(LIGHT *plight)
+void DeleteLight(LIGHT* plight)
 {
 	delete plight;
 }
@@ -794,12 +873,12 @@ void DeallocateLightVector()
 }
 
 std::vector <LIGHT*> allSwLights;
+std::vector<LIGHT*> allSwDynamicLights;
 ACTIVELIGHTS activeLights;
-std::vector <int> dynamicLightsIndices;
 GLuint g_lightSsbo;
-int numRl;
+GLuint g_activeLightsSsbo;
+int numSwLights;
 std::vector <LIGHTBLK> lightBlk;
-
 glm::vec3 g_vecHighlight = glm::vec3(0.0, 255.0, 255.0);
 float g_degHighlight = 0.0;
 float g_gMidtone = 255.0;
@@ -807,6 +886,6 @@ float g_degMidtone = 240.0;
 float g_gShadow = 0.0;
 float g_degShadow = 180.0;
 glm::vec3 s_vecDirectionDefault = glm::vec3(-0.2, 0.3, -1.0);
-LM s_lmFallOffDefault{500, 2500};
+LM s_lmFallOffDefault{ 500, 2500 };
 glm::vec3 s_posDefault = glm::vec3(100, -150, 500);
 GRFDFL g_grfdfl = 1;

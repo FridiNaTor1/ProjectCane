@@ -69,9 +69,6 @@
     <ClCompile Include="unk0.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="unk2.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="unk5.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -558,6 +555,39 @@
     <ClCompile Include="update.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="frm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="solve.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bez.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="loop.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pingpong.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shuffle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hologram.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="eyes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="scroller.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="circler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="looker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basic.h">
@@ -579,9 +609,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="unk5.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unk2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="binoc.h">
@@ -1124,6 +1151,39 @@
     <ClInclude Include="shdanimdec.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="frm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="solve.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bez.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="loop.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pingpong.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shuffle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hologram.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="eyes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="scroller.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="circler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="looker.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Sly1-Release.rc">
@@ -1161,10 +1221,10 @@
     <None Include="geom.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="glob_perpixel.vert">
+    <None Include="dysh.vert">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="glob_perpixel.frag">
+    <None Include="dysh.frag">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

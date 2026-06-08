@@ -152,7 +152,7 @@ float* PwreGetWrBendBenduBias(WR* pwr, ENSK ensk)
 
 void AddWrBendNoise(WR* pwr, float uAmpl, float gFreq, float gPhase, float uRandom)
 {
-	WRE *pwre = PwreGetWrBend(pwr, ENSK_Set);
+	WRE* pwre = PwreGetWrBend(pwr, ENSK_Set);
 	AddOnzOnze(&pwre->bend.onzRadBend, uAmpl, gFreq, gPhase, uRandom);
 }
 
@@ -185,7 +185,7 @@ float* PwreGetWrBenduSwiveluBias(WR* pwr, ENSK ensk)
 
 void AddWrSwivelNoise(WR* pwr, float uAmpl, float gFreq, float gPhase, float uRandom)
 {
-	WRE *pwre = PwreGetWrBend(pwr, ENSK_Set);
+	WRE* pwre = PwreGetWrBend(pwr, ENSK_Set);
 	AddOnzOnze(&pwre->bend.onzRadSwivel, uAmpl, gFreq, gPhase, uRandom);
 }
 
@@ -233,27 +233,22 @@ int  GetWrSize()
 	return sizeof(WR);
 }
 
-void ApplyWrGlob(WR *pwr, ALO *palo, GLOB *pglob)
+void ApplyWrGlob(WR* pwr, ALO* palo, GLOB* pglob)
 {
 	if (!pwr || !palo || !pglob || !pglob->pwrbg)
 		return;
 
-	auto wrbg = pglob->pwrbg; // shared_ptr<WRBG>
+	auto wrbg = pglob->pwrbg;
 	if (!wrbg) return;
 
-	//  already attached to this WR? do nothing
-	if (wrbg->pwr == pwr)
-		return;
+	// already attached?
+	if (wrbg->pwr == pwr) return;
 
-	//  if it's already somewhere in this WR list, do nothing
+	// already in WR list?
 	for (auto it = pwr->pwrbgFirst; it; it = it->pwrbgNextWr)
-		if (it == wrbg)
-			return;
+		if (it == wrbg) return;
 
-	//  clear stale WR linkage before inserting
 	wrbg->pwrbgNextWr.reset();
-
-	// Link WRBG into WR's list
 	wrbg->pwrbgNextWr = pwr->pwrbgFirst;
 	pwr->pwrbgFirst = wrbg;
 
@@ -261,33 +256,26 @@ void ApplyWrGlob(WR *pwr, ALO *palo, GLOB *pglob)
 	wrbg->palo = palo;
 	wrbg->pglob = pglob;
 
-	// Ensure WR matrix SSBOs exist (these are WR-owned)
-	const int cmat = pwr->cmat;
+	// --- NEW: allocate per-GLOB warp state ---
+	if (!pglob->pwarpGlob)
+		return;
 
-	// Allocate per-subglob state SSBO
-	for (SUBGLOB& sg : pglob->asubglob)
-	{
-		if (!sg.pwarp) continue;
+	WRBGLOB_GL& w = *pglob->pwarpGlob;
 
-		WRBSG_GL& w = *sg.pwarp;
-		w.pwr = pwr;
-		w.cmat = cmat;
+	w.pwr = pwr;
+	w.cmat = pwr->cmat;
 
-		w.vertexCount = (int)w.basePos.size();
-		if (w.vertexCount <= 0) continue;
+	if (w.vertexCount <= 0)
+		return;
 
-		const size_t totalVec4 = (size_t)w.vertexCount * (size_t)cmat;
-		const GLsizeiptr bytesState = (GLsizeiptr)(totalVec4 * sizeof(glm::vec4));
+	const size_t totalVec4 = (size_t)w.vertexCount * (size_t)w.cmat;
+	const GLsizeiptr bytes = (GLsizeiptr)(totalVec4 * sizeof(glm::vec4));
 
-		if (w.ssboState == 0)
-			glGenBuffers(1, &w.ssboState);
+	w.state.assign(totalVec4, glm::vec4(0.0f));
 
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, w.ssboState);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, bytesState, nullptr, GL_DYNAMIC_DRAW);
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-		w.state.assign(totalVec4, glm::vec4(0.0f)); // optional CPU mirror
-	}
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, w.ssboState);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, bytes, nullptr, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 float GFromOnz(ONZ* ponz)
@@ -360,28 +348,50 @@ float Hash01(uint32_t n)
 
 void UpdateWrStateVectors(WR* pwr)
 {
-	auto pwrbg = pwr->pwrbgFirst;
-	if (!pwrbg)
+	auto pwrbg = pwr ? pwr->pwrbgFirst : nullptr;
+	if (!pwrbg || !pwr)
 	{
-		pwr->fValuesChanged = false;
+		if (pwr) pwr->fValuesChanged = false;
 		return;
 	}
 
 	while (pwrbg)
 	{
-		auto palo = pwrbg->palo;
-		auto pglob = pwrbg->pglob;
+		ALO* palo = pwrbg->palo;
+		GLOB* pglob = pwrbg->pglob;
+
 		if (!palo || !pglob)
 		{
 			pwrbg = pwrbg->pwrbgNextWr;
 			continue;
 		}
 
-		const WEKI& weki = pwrbg->weki;
+		// Must have per-glob warp storage allocated (built at pack time, SSBO sized in ApplyWrGlob)
+		if (!pglob->pwarpGlob)
+		{
+			pwrbg = pwrbg->pwrbgNextWr;
+			continue;
+		}
+
+		WRBGLOB_GL& w = *pglob->pwarpGlob;
+
+		// WR may change cmat at runtime; keep in sync
+		const int cmat = pwr->cmat;
+		w.pwr = pwr;
+		w.cmat = cmat;
+
+		const int vertexCount = w.vertexCount;
+		if (vertexCount <= 0 || w.basePos.empty())
+		{
+			pwrbg = pwrbg->pwrbgNextWr;
+			continue;
+		}
 
 		// ------------------------------------------------------------
-		// 1) Build dmatEnv for envelope (PS2: dmat = weki.dmat; then if pdmat exists: dmat = weki.dmat * pdmat)
+		// 1) Build dmatEnv for envelope (PS2: dmat = weki.dmat; if pdmat exists: dmat = weki.dmat * pdmat)
 		// ------------------------------------------------------------
+		const WEKI& weki = pwrbg->weki;
+
 		glm::mat4 dmatEnv(1.0f);
 		if (weki.wek != WEK_Nil)
 		{
@@ -391,7 +401,7 @@ void UpdateWrStateVectors(WR* pwr)
 		}
 
 		// ------------------------------------------------------------
-		// 2) Build CLQ + LM clamp range 
+		// 2) Build CLQ + LM clamp range
 		// ------------------------------------------------------------
 		float lmMin = 1.0f, lmMax = 1.0f;
 		float clq_g0 = 0.0f, clq_g1 = 0.0f;
@@ -409,7 +419,6 @@ void UpdateWrStateVectors(WR* pwr)
 		// ------------------------------------------------------------
 		// 3) Compute posBendLocal like PS2:
 		//    posBendLocal = inverse(weki.dmat) * (axisNormal * midS)
-		//    Only for WEK_X/WEK_Y/WEK_Z; else zero.
 		// ------------------------------------------------------------
 		glm::vec3 posBendLocal(0.0f);
 
@@ -422,69 +431,51 @@ void UpdateWrStateVectors(WR* pwr)
 			if (weki.wek == WEK_Y) axis = glm::vec3(0.0f, 1.0f, 0.0f);
 			if (weki.wek == WEK_Z) axis = glm::vec3(0.0f, 0.0f, 1.0f);
 
-			// PS2 inverts WEKI.dmat (NOT the pdmat-composed one) before applying to axis*midS
-			glm::mat4 invWeKi(1.0f);
-			// if weki is Nil, this block won't run anyway
-			invWeKi = glm::inverse(weki.dmat);
-
+			// PS2 uses inverse(weki.dmat) (not the pdmat-composed one)
+			const glm::mat4 invWeKi = glm::inverse(weki.dmat);
 			posBendLocal = glm::vec3(invWeKi * glm::vec4(axis * midS, 1.0f));
 		}
 
 		// ------------------------------------------------------------
-		// 4) Build posMat for world position evaluation (PS2: LoadMatrixFromPosRot(posWorld, matWorld) then * pdmat)
+		// 4) Build posMat for world position evaluation:
+		//    posMat = alo->xf.matWorld (with translation set to alo->xf.posWorld) then * pdmat
 		// ------------------------------------------------------------
 		glm::mat4 posMat = palo->xf.matWorld;
-
-		// Overwrite translation with posWorld (keeps your engine consistent even if matWorld already has translation)
 		posMat[3] = glm::vec4(palo->xf.posWorld, 1.0f);
 
 		if (pglob->pdmat)
 			posMat = posMat * (*pglob->pdmat);
 
 		// ------------------------------------------------------------
-		// 5) worldPosBend = palo.posWorld + (palo.matWorld * posBendLocal)
-		//    PS2 uses rotation part of alo->xf.matWorld + alo->xf.posWorld.
+		// 5) worldPosBend = alo.posWorld + (alo.rot * posBendLocal)
 		// ------------------------------------------------------------
-		const glm::vec3 worldPosBend = palo->xf.posWorld + (glm::mat3(palo->xf.matWorld) * posBendLocal);
+		const glm::vec3 worldPosBend =
+			palo->xf.posWorld + (glm::mat3(palo->xf.matWorld) * posBendLocal);
 
-		const int cmat = pwr->cmat;
+		// ------------------------------------------------------------
+		// 6) Ensure state sized & cleared
+		// ------------------------------------------------------------
+		const size_t totalVec4 = (size_t)cmat * (size_t)vertexCount;
 
-		// For each subglob
-		for (auto& sub : pglob->asubglob)
+		if (w.state.size() != totalVec4)
+			w.state.assign(totalVec4, glm::vec4(0.0f));
+		else
+			std::fill(w.state.begin(), w.state.end(), glm::vec4(0.0f));
+
+		// ------------------------------------------------------------
+		// 7) Compute au[v] using dmatEnv (envelope only)
+		// ------------------------------------------------------------
+		std::vector<float> au((size_t)vertexCount, 1.0f);
+
+		if (weki.wek != WEK_Nil)
 		{
-			if (!sub.pwarp)
-				continue;
-
-			WRBSG_GL& w = *sub.pwarp;
-			w.pwr = pwr;
-			w.cmat = cmat;
-
-			const int vertexCount = (int)w.basePos.size();
-			if (vertexCount <= 0)
-				continue;
-
-			const size_t totalVec4 = (size_t)cmat * (size_t)vertexCount;
-
-			// Ensure state buffer sized & cleared (PS2 rebuilds)
-			if (w.state.size() != totalVec4)
-				w.state.assign(totalVec4, glm::vec4(0.0f));
-			else
-				std::fill(w.state.begin(), w.state.end(), glm::vec4(0.0f));
-
-			// --------------------------------------------------------
-			// 6) Compute au[v] using dmatEnv (envelope only)
-			// --------------------------------------------------------
-			std::vector<float> au((size_t)vertexCount, 1.0f);
-
-			if (weki.wek != WEK_Nil)
+			for (int v = 0; v < vertexCount; ++v)
 			{
-				for (int v = 0; v < vertexCount; ++v)
-				{
-					const glm::vec3 pEnv = glm::vec3(dmatEnv * w.basePos[v]);
+				const glm::vec3 pEnv = glm::vec3(dmatEnv * w.basePos[v]);
 
-					float s = 0.0f;
-					switch (weki.wek)
-					{
+				float s = 0.0f;
+				switch (weki.wek)
+				{
 					case WEK_X:   s = pEnv.x; break;
 					case WEK_Y:   s = pEnv.y; break;
 					case WEK_Z:   s = pEnv.z; break;
@@ -493,79 +484,81 @@ void UpdateWrStateVectors(WR* pwr)
 					case WEK_YZ:  s = std::sqrt(pEnv.y * pEnv.y + pEnv.z * pEnv.z); break;
 					case WEK_XYZ: s = std::sqrt(pEnv.x * pEnv.x + pEnv.y * pEnv.y + pEnv.z * pEnv.z); break;
 					default:
-						au[v] = 1.0f;
-						continue;
-					}
-
-					float u = clq_g0 + s * clq_g1;
-					if (u < lmMin) u = lmMin;
-					if (u > lmMax) u = lmMax;
-					au[v] = u;
+					au[v] = 1.0f;
+					continue;
 				}
-			}
 
-			// --------------------------------------------------------
-			// 7) Write per-WRE states (Circle/Bend use WORLD positions via posMat)
-			// --------------------------------------------------------
-			for (int iwre = 0; iwre < pwr->cwre; ++iwre)
+				float u = clq_g0 + s * clq_g1;
+				if (u < lmMin) u = lmMin;
+				if (u > lmMax) u = lmMax;
+				au[v] = u;
+			}
+		}
+
+		// --------------------------------------------------------
+		// 8) Write per-WRE states into w.state
+		//    Layout: state[imat * vertexCount + v]
+		// --------------------------------------------------------
+		for (int iwre = 0; iwre < pwr->cwre; ++iwre)
+		{
+			const WRE& wre = pwr->awre[iwre];
+			const int imat = wre.imat;
+
+			if (imat < 0 || imat >= cmat)
+				continue;
+
+			glm::vec4* dst = w.state.data() + (size_t)imat * (size_t)vertexCount;
+
+			if (wre.wrek == WREK_Circle)
 			{
-				const WRE &wre = pwr->awre[iwre];
-				const int imat = wre.imat;
-				if (imat < 0 || imat >= cmat)
+				const int is = wre.circle.is;
+				if (is < 0 || is + 1 >= 4)
 					continue;
 
-				glm::vec4* dst = w.state.data() + (size_t)imat * (size_t)vertexCount;
+				const glm::vec3 normal = wre.circle.normal;
+				const float rgDot = wre.circle.rgDot;
+				const float twoPi = 6.283185307179586f;
 
-				if (wre.wrek == WREK_Circle)
+				for (int v = 0; v < vertexCount; ++v)
 				{
-					const int is = wre.circle.is;
-					if (is < 0 || is + 1 >= 4)
-						continue;
+					const glm::vec3 Pw = glm::vec3(posMat * w.basePos[v]);
 
-					const glm::vec3 normal = wre.circle.normal;
-					const float rgDot = wre.circle.rgDot;
-					const float twoPi = 6.283185307179586f;
+					const float dotv = Pw.x * normal.x + Pw.y * normal.y + Pw.z * normal.z;
+					const float ang = dotv * rgDot * twoPi;
 
-					for (int v = 0; v < vertexCount; ++v)
-					{
-						// PS2 Circle uses transformed position from posMat chain (world-ish)
-						const glm::vec3 Pw = glm::vec3(posMat * w.basePos[v]);
+					const float sn = std::sinf(ang);
+					const float cs = std::cosf(ang);
 
-						const float dotv = Pw.x * normal.x + Pw.y * normal.y + Pw.z * normal.z;
-						const float ang = dotv * rgDot * twoPi;
+					const float u = au[v];
 
-						const float sn = std::sinf(ang);
-						const float cs = std::cosf(ang);
-
-						const float u = au[v];
-
-						// PS2 writes only is and is+1 lanes for Circle
-						dst[v][is] = cs * u;
-						dst[v][is + 1] = sn * u;
-					}
-				}
-				else if (wre.wrek == WREK_Bend)
-				{
-					for (int v = 0; v < vertexCount; ++v)
-					{
-						// PS2 Bend uses world-ish vertex position minus worldPosBend
-						const glm::vec3 Pw = glm::vec3(posMat * w.basePos[v]);
-						const glm::vec3 d = Pw - worldPosBend;
-
-						const float u = au[v];
-
-						// PS2 Bend: xyz = u * d, w = 1
-						dst[v].x = d.x * u;
-						dst[v].y = d.y * u;
-						dst[v].z = d.z * u;
-						dst[v].w = 1.0f;
-					}
+					// Circle writes only lanes is and is+1
+					dst[v][is] = cs * u;
+					dst[v][is + 1] = sn * u;
 				}
 			}
+			else if (wre.wrek == WREK_Bend)
+			{
+				for (int v = 0; v < vertexCount; ++v)
+				{
+					const glm::vec3 Pw = glm::vec3(posMat * w.basePos[v]);
+					const glm::vec3 d = Pw - worldPosBend;
 
-			// --------------------------------------------------------
-			// 8) Upload state SSBO
-			// --------------------------------------------------------
+					const float u = au[v];
+
+					// Bend writes xyz = u*d, w=1
+					dst[v].x = d.x * u;
+					dst[v].y = d.y * u;
+					dst[v].z = d.z * u;
+					dst[v].w = 1.0f;
+				}
+			}
+		}
+
+		// --------------------------------------------------------
+		// 9) Upload state SSBO ONCE for this glob
+		// --------------------------------------------------------
+		if (w.ssboState != 0)
+		{
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, w.ssboState);
 			glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, (GLsizeiptr)(w.state.size() * sizeof(glm::vec4)), w.state.data());
 			glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -587,14 +580,14 @@ void UpdateWrMatrixes(WR* pwr)
 
 	for (int i = 0; i < pwr->cwre; ++i)
 	{
-		WRE &wre = pwr->awre[i];
+		WRE& wre = pwr->awre[i];
 		const int imat = wre.imat;
 
 		if (imat < 0 || imat >= pwr->cmat)
 			continue;
 
 		glm::mat4& mDpos = pwr->amatDpos[imat];
-		glm::mat4& mDuv  = pwr->amatDuv[imat];
+		glm::mat4& mDuv = pwr->amatDuv[imat];
 
 		if (wre.wrek == WREK_Circle)
 		{
@@ -641,7 +634,7 @@ void UpdateWrMatrixes(WR* pwr)
 			// Clear the whole matrix so untouched lanes don't keep old junk.
 			mDpos = glm::mat4(0.0f);
 
-			const float radBend   = GFromOnz(&wre.bend.onzRadBend);
+			const float radBend = GFromOnz(&wre.bend.onzRadBend);
 			const float radSwivel = GFromOnz(&wre.bend.onzRadSwivel);
 
 			glm::vec3 normalSwivel(wre.bend.normalSwivel.x, wre.bend.normalSwivel.y, wre.bend.normalSwivel.z);
@@ -678,5 +671,3 @@ void DeleteWr(WR* pwr)
 {
 	delete pwr;
 }
-
-std::vector <WR*>g_pwrs;

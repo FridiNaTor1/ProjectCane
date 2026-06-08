@@ -129,5 +129,3 @@ float Hash01(uint32_t n);
 void UpdateWrStateVectors(WR* pwr);
 void UpdateWrMatrixes(WR* pwr);
 void DeleteWr(WR* pwr);
-
-extern std::vector <WR*>g_pwrs;

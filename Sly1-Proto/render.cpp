@@ -54,7 +54,7 @@ void RenderSwAloAll(SW* psw, CM* pcm)
 
 void RenderSwGlobset(SW* psw, CM* pcm)
 {
-	for (int i = 0; i < allSWAloObjs.size(); i++)
+	for (int i = 0; i < 115; i++)
 		allSWAloObjs[i]->pvtalo->pfnRenderAloGlobset(allSWAloObjs[i], pcm, nullptr);
 }
 

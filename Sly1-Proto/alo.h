@@ -387,7 +387,7 @@ void SetAloEuler(ALO* palo, glm::vec3* peul);
 void SetAloVelocityLocal(ALO* palo, glm::vec3* pvec);
 void SetAloFastShadowRadius(ALO* palo, float sRadius);
 void SetAloFastShadowDepth(ALO* palo, float sDepth);
-void SetAloCastShadow(ALO* palo, int fCastShadow);
+void SetAloCastShadow(ALO* palo, byte fCastShadow);
 void SetAloShadowShader(ALO* palo, OID oidShdShadow);
 void GetAloShadowShader(ALO* palo, OID* poidShdShadow);
 void GetAloShadowNearRadius(ALO* palo, float* psNearRadius);

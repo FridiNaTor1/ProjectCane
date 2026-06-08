@@ -251,6 +251,9 @@ void RemoveDlEntry(DL *pdl, void *pv);
 int FFindDlEntry(DL *pdl, void *pv);
 // Returns whether DL list is empty or not
 int FIsDlEmpty(DL *pdl);
+void MergeDl(DL* dst, DL* src);
+// Returns counts of entries in DL
+int CPvDl(DL *pdl);
 
 // Used to keep track of head node
 extern DLI* s_pdliFirst;

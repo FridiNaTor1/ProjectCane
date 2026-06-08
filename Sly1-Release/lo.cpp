@@ -61,17 +61,14 @@ void SnipLo(LO* plo)
 
 	VTALO* pvtlo = plo->pvtalo;
 
-	if (pvtlo->pfnBindAlo != nullptr) {
+	if (pvtlo->pfnBindAlo != nullptr) 
 		pvtlo->pfnBindAlo((ALO*)plo);
-	}
 
-	if (pvtlo->pfnPostAloLoad) {
+	if (pvtlo->pfnPostAloLoad)
 		pvtlo->pfnPostAloLoad((ALO*)plo);
-	}
 
-	if (pvtlo->pfnRemoveLo) {
+	if (pvtlo->pfnRemoveLo)
 		pvtlo->pfnRemoveLo(plo);
-	}
 }
 
 void CloneLoHierarchy(LO* plo, LO* ploBase)

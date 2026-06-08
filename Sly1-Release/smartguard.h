@@ -34,4 +34,5 @@ int  GetSmartguardSize();
 void CloneSmartguard(SMARTGUARD* psmartguard, SMARTGUARD* psmartguardBase);
 void PostSmartguardLoad(SMARTGUARD* psmartguard);
 void UpdateSmartguard(SMARTGUARD* psmartguard, float dt);
+void FreezeSmartguard(SMARTGUARD* psmartguard, int fFreeze);
 void DeleteSmartGuard(SMARTGUARD* psmartguard);

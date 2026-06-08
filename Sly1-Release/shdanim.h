@@ -2,102 +2,6 @@
 #include "shd.h"
 #include "clock.h"
 
-enum EYESS
-{
-    EYESS_Nil = -1,
-    EYESS_Open = 0,
-    EYESS_Closing = 1,
-    EYESS_Closed = 2,
-    EYESS_Opening = 3,
-    EYESS_Max = 4
-};
-
-struct LOOP : public SAA
-{
-    float dtLoopMin;
-    float dtLoopMax;
-    float dtPauseMin;
-    float dtPauseMax;
-    float sviframe;
-    float gframe;
-    float dtPauseRequested;
-    float dtPause;
-};
-
-struct PINGPONG : public SAA
-{
-    float dtPingpongMin;
-    float dtPingpongMax;
-    float dtPauseMin;
-    float dtPauseMax;
-    float sviframe;
-    float gframe;
-    float dtPauseRequested;
-    float dtPause;
-};
-
-struct SHUFFLE : public SAA
-{
-    float dtPauseMin;
-    float dtPauseMax;
-    float dtPause;
-};
-
-struct HOLOGRAM : public SAA
-{
-    float dradAdjust;
-    float dradSymmetry;
-    float dradFrame;
-};
-
-struct EYES : public SAA
-{
-    float dtBlink;
-    float dtOpenMin;
-    float dtOpenMax;
-    float uDoubleBlink;
-    OID oidOther;
-    SAI saiOther;
-    int cframe;
-    EYESS eyess;
-    float tEyess;
-    float dtOpen;
-    float sviframe;
-    float gframe;
-    float uClosed;
-};
-
-struct SCROLLER : public SAA
-{
-    float svu;
-    float svv;
-    float duMod;
-    float dvMod;
-    float svuMaster;
-    float svvMaster;
-};
-
-struct CIRCLER : public SAA
-{
-    float sw;
-    float sRadius;
-    float du;
-    float dv;
-};
-
-struct LOOKER
-{
-    float uCenter;
-    float vCenter;
-    float duMin;
-    float duMax;
-    float dvMin;
-    float dvMax;
-    int cvtx;
-    struct UVQ* puvqd;
-    struct POSAD* pposad;
-};
-
 struct SAAF
 {
     uint16_t oid;
@@ -187,28 +91,8 @@ void  PostSaaLoad(SAA* psaa);
 float UCompleteSaa(SAA* psaa);
 SAI*  PsaiFromSaaShd(SAA* psaa, SHD* pshd);
 int   FUpdatableSaa(SAA* psaa);
+void  SetSaiDuDv(SAI* psai, float du, float dv);
 void  DeleteSaa(SAA* psaa);
-
-void  LoadLoopFromBrx(LOOP *ploop, CBinaryInputStream *pbis);
-void  InitLoop(LOOP* ploop, SAAF* psaaf);
-void  PostLoopLoad(LOOP* ploop);
-void  UpdateLoop(LOOP* ploop, float dt);
-float UCompleteLoop(LOOP* ploop);
-void  DeleteLoop(LOOP* ploop);
-
-void  LoadScrollerFromBrx(SCROLLER* pscroller, CBinaryInputStream* pbis);
-void  InitScroller(SCROLLER* pscroller, SAAF* psaaf);
-void  UpdateScroller(SCROLLER* pscroller, float dt);
-float UCompleteScroller(SCROLLER* scroller);
-void  DeleteScroller(SCROLLER* pscroller);
-
-void  LoadCirclerFromBrx(CIRCLER* pcircler, CBinaryInputStream* pbis);
-void  InitCircler(CIRCLER* pcircler, SAAF* psaaf);
-void  UpdateCircler(CIRCLER* pcircler, float dt);
-float UCompleteCircler(CIRCLER* pcircler);
-void  DeleteCircler(CIRCLER* pcircler);
-
-void SetSaiDuDv(SAI* psai, float du, float dv);
 
 extern SAI* g_psaiUpdate;
 extern SAI* g_psaiUpdateTail;

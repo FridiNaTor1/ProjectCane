@@ -8,6 +8,7 @@ MGV* NewMgv()
 void InitMgv(MGV* pmgv)
 {
 	InitPo(pmgv);
+
 	pmgv->cpoints = 200;
 	pmgv->clives = 5;
 }
@@ -36,6 +37,14 @@ void CloneMgv(MGV* pmgv, MGV* pmgvBase)
     pmgv->tmblLives = pmgvBase->tmblLives;
     pmgv->clives = pmgvBase->clives;
     pmgv->cpoints = pmgvBase->cpoints;
+}
+
+void UpdateMgv(MGV* pmgv, float dt)
+{
+    UpdatePo(pmgv, dt);
+
+    glm::vec4 color(0.0, 1.0f, 16.0f / 255.0f, 1.0f);
+    SetAloOverrideCel(pmgv, &color);
 }
 
 void DeleteMgv(MGV *pmgv)

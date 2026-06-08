@@ -67,4 +67,5 @@ void LoadTbspFromBrx(CBinaryInputStream* pbis);
 void PostTnLoad(TN* ptn);
 void UpdateTn(TN* ptn, float dt);
 void RenderTnSelf(TN* ptn, CM* pcm, RO* pro);
+void FreezeTn(TN* ptn, int fFreeze);
 void DeleteTn(TN* ptn);

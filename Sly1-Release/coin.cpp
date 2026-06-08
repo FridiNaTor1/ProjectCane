@@ -10,7 +10,7 @@ void InitSwDprizeDl(SW* psw)
 	InitDl(&psw->dlDprize, offsetof(DPRIZE, dleDprize));
 }
 
-void InitDprize(DPRIZE *pdprize)
+void InitDprize(DPRIZE* pdprize)
 {
 	pdprize->dprizesInit = DPRIZES_Normal;
 	pdprize->dprizes = DPRIZES_Nil;
@@ -18,7 +18,7 @@ void InitDprize(DPRIZE *pdprize)
 	pdprize->oidInitialState = OID_Nil;
 	InitAlo(pdprize);
 	AppendDlEntry(&pdprize->psw->dlDprize, pdprize);
-	
+
 }
 
 int GetDprizeSize()
@@ -91,7 +91,43 @@ void UpdateDprize(DPRIZE* pdprize, float dt)
 
 void RenderDprizeAll(DPRIZE* pdprize, CM* pcm, RO* pro)
 {
-	RenderAloAll(pdprize, pcm, pro);
+	if (pdprize->fHidden != 0)
+		return;
+
+	RO roLocal;
+	RO* proRender = pro;
+
+	const DPRIZES state = pdprize->dprizes;
+
+	// Original: (DVar1 < DPRIZES_Lose) && (DPRIZES_Fall < DVar1)
+	if (state > DPRIZES_Fall && state < DPRIZES_Lose)
+	{
+		const bool isSwirl = (state == DPRIZES_Swirl);
+
+		const float duration = isSwirl ? DT_DprizeSwirl : DT_DprizeStick;
+		const CLQ* pClq = isSwirl ? &s_clqUToRSwirl : &s_clqUToRStick;
+
+		// t = saturate((g_clock.t - tDprizes) / duration)
+		float t = (g_clock.t - pdprize->tDprizes) / duration;
+		if (t < 0.0f) t = 0.0f;
+		if (t > 1.0f) t = 1.0f;
+
+		// Decomp: (int)(g0 + t*(g1 + t*g2)) then broadcast to x/y/z
+		float s = pClq->g0 + t * (pClq->g1 + t * pClq->g2);
+		s = static_cast<float>(static_cast<int>(s)); // keep original quantization behavior
+
+		glm::mat4 scaleMat(1.0f);
+		scaleMat = glm::scale(scaleMat, glm::vec3(s, s, s));
+
+		DupAloRo(pdprize, pro, &roLocal);
+
+		// Decomp did: ro.mat * mat
+		roLocal.model = roLocal.model * scaleMat;
+
+		proRender = &roLocal;
+	}
+
+	RenderAloAll(pdprize, pcm, proRender);
 }
 
 void DeleteDprize(DPRIZE* pdprize)
@@ -197,6 +233,14 @@ KEY* NewKey()
 void InitKey(KEY* pkey)
 {
 	InitDprize(pkey);
+
+	pkey->sRadiusCollect = 35.0;
+	pkey->svLastBounceMax = 500.0;
+	pkey->svLastBounce = 250.0;
+	pkey->rzBounce = 0.6;
+	pkey->uGlintChance = 0.75;
+	pkey->sRadiusBounce = 35.0;
+	pkey->rxyBounce = 0.6;
 }
 
 int GetKeySize()
@@ -238,6 +282,8 @@ int GetGoldSize()
 void CloneGold(GOLD* pgold, GOLD* pgoldBase)
 {
 	CloneDprize(pgold, pgoldBase);
+
+	pgoldBase = pgold;
 }
 
 void DeleteGold(GOLD* pgold)
@@ -249,3 +295,7 @@ LIFECTR g_lifectr;
 COINCTR g_coinctr;
 GOLDCTR g_goldctr;
 KEYCTR  g_keyctr;
+float DT_DprizeSwirl = 1.0;
+float DT_DprizeStick = 0.25;
+CLQ s_clqUToRStick = { 0.69999999, -0.4, 0.0, 0.0 };
+CLQ s_clqUToRSwirl = { 1.0, -0.3, 0.0, 0.0 };

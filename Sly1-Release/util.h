@@ -52,6 +52,7 @@ int CSolveQuadratic(float a, float b, float c, float *solutions);
 void CalculateSinCos(float angle, float *sin, float *cos);
 double GTrunc(double param_1);
 float GTrunc(float param_1);
+void PrescaleClq(CLQ* src, float ru, float du, CLQ* dst);
 float GModPositive(float param_1, float param_2);
 //TODO: FitClq
 bool FCheckLm(LM *plm, float g);

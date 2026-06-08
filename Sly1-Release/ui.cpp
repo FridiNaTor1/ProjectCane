@@ -326,8 +326,9 @@ void DrawUiSplash(UI* pui)
 
 void DrawUi(UI* pui)
 {
-    glClearStencil(0);
     glBlotShader.Use();
+    glClearStencil(0);
+    glStencilMask(0xFF);
 
     DrawUiSelf(pui);
     DrawBlots();

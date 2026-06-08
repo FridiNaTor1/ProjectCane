@@ -1,7 +1,8 @@
 #pragma once
 #include "alo.h"
 
-enum DPRIZES {
+enum DPRIZES 
+{
     DPRIZES_Nil = -1,
     DPRIZES_Normal = 0,
     DPRIZES_Collect = 1,
@@ -16,46 +17,47 @@ enum DPRIZES {
 
 class DPRIZE : public ALO
 {
-	public:
-        DPRIZES dprizes;
-        float tDprizes;
-        DPRIZES dprizesInit;
-        OID oidInitialState;
-        float dtInitialSkip;
-        struct SM* psm;
-        struct SMA* psma;
-        struct TARGET* ptarget;
-        glm::vec3 posCenter;
-        glm::vec3 vCenter;
-        glm::vec3 dvCenter;
-        float uGlintChance;
-        struct PNT* ppntFrontGlint;
-        struct PNT* ppntBackGlint;
-        int fLeft;
-        float tGlint;
-        int fNeverReuse;
-        int fReuseCandidate;
-        int fLastBounce;
-        float svLastBounceMax;
-        float svLastBounce;
-        float sRadiusBounce;
-        float sRadiusCollect;
-        float rzBounce;
-        float rxyBounce;
-        float radSmooth;
-        glm::vec3 normalSmooth;
-        int fSwirlDone;
-        DLE dleDprize;
-        int ichkCollected;
-        struct EXPL* pexplCollect;
-        struct EXPL* pexplAttract;
-        float svcAttract;
-        float cAttract;
+    public:
+
+    DPRIZES dprizes;
+    float tDprizes;
+    DPRIZES dprizesInit;
+    OID oidInitialState;
+    float dtInitialSkip;
+    struct SM* psm;
+    struct SMA* psma;
+    struct TARGET* ptarget;
+    glm::vec3 posCenter;
+    glm::vec3 vCenter;
+    glm::vec3 dvCenter;
+    float uGlintChance;
+    struct PNT* ppntFrontGlint;
+    struct PNT* ppntBackGlint;
+    int fLeft;
+    float tGlint;
+    int fNeverReuse;
+    int fReuseCandidate;
+    int fLastBounce;
+    float svLastBounceMax;
+    float svLastBounce;
+    float sRadiusBounce;
+    float sRadiusCollect;
+    float rzBounce;
+    float rxyBounce;
+    float radSmooth;
+    glm::vec3 normalSmooth;
+    int fSwirlDone;
+    DLE dleDprize;
+    int ichkCollected;
+    struct EXPL* pexplCollect;
+    struct EXPL* pexplAttract;
+    float svcAttract;
+    float cAttract;
 };
 
 class CHARM : public DPRIZE
 {
-    public:
+public:
 };
 
 struct COINCTR : public CTR
@@ -65,9 +67,9 @@ struct COINCTR : public CTR
 
 class COIN : public DPRIZE
 {
-    public:
-        LM lmDtMaxLifetime;
-        float tLose;
+public:
+    LM lmDtMaxLifetime;
+    float tLose;
 };
 
 struct LIFECTR : public CTR
@@ -77,7 +79,7 @@ struct LIFECTR : public CTR
 
 class LIFETKN : public DPRIZE
 {
-    public:
+public:
 };
 
 struct KEYCTR : public CTR
@@ -87,7 +89,7 @@ struct KEYCTR : public CTR
 
 class KEY : public DPRIZE
 {
-    public:
+public:
 };
 
 struct GOLDCTR : public CTR
@@ -97,13 +99,13 @@ struct GOLDCTR : public CTR
 
 class GOLD : public DPRIZE
 {
-    public:
-        int fStartTimedChallenge;
+public:
+    int fStartTimedChallenge;
 };
 
 DPRIZE* NewDprize();
 void InitSwDprizeDl(SW* psw);
-void InitDprize(DPRIZE *pdprize);//NOT FINISHED
+void InitDprize(DPRIZE* pdprize);//NOT FINISHED
 int  GetDprizeSize();
 void LoadDprizeFromBrx(DPRIZE* pdprize, CBinaryInputStream* pbis);
 void CloneDprize(DPRIZE* pdprize, DPRIZE* pdprizeBase);
@@ -120,12 +122,12 @@ void DeleteCharm(CHARM* pcharm);
 
 void StartupCoinCtr(COINCTR* pcoinctr);
 
-COIN*NewCoin();
+COIN* NewCoin();
 void InitCoin(COIN* pcoin);
 int  GetCoinSize();
 void CloneCoin(COIN* pcoin, COIN* pcoinBase);
 void UpdateCoin(COIN* pcoin, float dt);
-void DeleteCoin(COIN *pcoin);
+void DeleteCoin(COIN* pcoin);
 
 void StartupLifeCtr(LIFECTR* plifectr);
 
@@ -144,7 +146,7 @@ void DeleteKey(KEY* pkey);
 
 void StartupGoldCtr(GOLDCTR* pgoldctr);
 
-GOLD*NewGold();
+GOLD* NewGold();
 void InitGold(GOLD* pgold);
 int  GetGoldSize();
 void CloneGold(GOLD* pgold, GOLD* pgoldBase);
@@ -154,3 +156,7 @@ extern LIFECTR g_lifectr;
 extern COINCTR g_coinctr;
 extern GOLDCTR g_goldctr;
 extern KEYCTR  g_keyctr;
+extern float DT_DprizeSwirl;
+extern float DT_DprizeStick;
+extern CLQ s_clqUToRStick;
+extern CLQ s_clqUToRSwirl;

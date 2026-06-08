@@ -8,6 +8,7 @@
 #include "debug.h"
 #include "mouse.h"
 #include "render.h"
+#include "frm.h"
 
 // Game loop
 int  main(int cphzArgs, char* aphzArgs[]);

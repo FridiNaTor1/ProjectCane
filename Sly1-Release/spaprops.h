@@ -50,7 +50,7 @@ enum CID
     CID_LGN = 26,
     CID_UNK0 = 27,
     CID_UNK1 = 28,
-    CID_UNK2 = 29,
+    CID_MGV = 29,
     CID_RIPG = 30,
     CID_WATER = 31,
     CID_BRK = 32,

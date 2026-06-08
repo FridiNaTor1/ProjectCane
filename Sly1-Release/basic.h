@@ -228,7 +228,7 @@ struct VTALO
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -289,7 +289,7 @@ struct VTSO
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -375,7 +375,7 @@ struct VTMS
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -461,7 +461,7 @@ struct VTPO
     void (*pfnUpdatePo)(PO*, float) = UpdatePo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent) (SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject) = nullptr;
@@ -558,7 +558,7 @@ struct VTSTEP
     void (*pfnUpdateStep)(STEP*, float) = UpdateStep;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -658,7 +658,7 @@ struct VTJT
     void (*pfnUpdateJt)(JT*, float) = UpdateJt;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -758,7 +758,7 @@ struct VTSTEPGUARD
     void (*pfnUpdateStepguard)(STEPGUARD*, float) = UpdateStepguard;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -869,7 +869,7 @@ struct VTSMARTGUARD
     void (*pfnUpdateSmartguard)(SMARTGUARD*, float) = UpdateSmartguard;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSmartguard) = nullptr;
+    void (*pfnFreezeSmartguard)(SMARTGUARD*, int) = FreezeSmartguard;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -980,7 +980,7 @@ struct VTGOMER
     void (*pfnUpdateStepguard)(STEPGUARD*, float) = UpdateStepguard;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent) (SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject) = nullptr;
@@ -1091,7 +1091,7 @@ struct VTUBG
     void (*pfnUpdateStepguard)(STEPGUARD*, float) = UpdateStepguard;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -1202,7 +1202,7 @@ struct VTMBG
     void (*pfnUpdateStepguard)(STEPGUARD*, float) = UpdateStepguard;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -1313,7 +1313,7 @@ struct VTBHG
     void (*pfnUpdateStepguard)(STEPGUARD*, float) = UpdateStepguard;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -1424,7 +1424,7 @@ struct VTMURRAY
     void (*pfnUpdateStepguard)(STEPGUARD*, float) = UpdateStepguard;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -1535,7 +1535,7 @@ struct VTPUFFC
     void (*pfnUpdatePuffc) = nullptr;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -1646,7 +1646,7 @@ struct VTCRFOD
     void (*pfnUpdateStepguard)(STEPGUARD*, float) = UpdateStepguard;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -1757,7 +1757,7 @@ struct VTCRFODB
     void (*pfnUpdateStepguard)(STEPGUARD*, float) = UpdateStepguard;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -1868,7 +1868,7 @@ struct VTCRFODK
     void (*pfnUpdateStepguard)(STEPGUARD*, float) = UpdateStepguard;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -1980,7 +1980,7 @@ struct VTUNK16
     void (*pfnUpdateStepguard)(STEPGUARD*, float) = UpdateStepguard;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -2091,7 +2091,7 @@ struct VTTANK
     void (*pfnUpdateTank)(TANK*, float) = UpdateTank;
     void (*pfnUpdateStepXfWorld) (STEP*) = UpdateStepXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -2191,7 +2191,7 @@ struct VTROV
     void (*pfnUpdateRov)(ROV*, float) = UpdateRov;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -2288,7 +2288,7 @@ struct VTTURRET
     void (*pfnUpdateTurret)(TURRET*, float) = UpdateTurret;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -2385,7 +2385,7 @@ struct VTVAULT
     void (*pfnUpdatePo)(PO*, float) = UpdatePo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -2482,7 +2482,7 @@ struct VTPUFFER
     void (*pfnUpdatePuffer)(PUFFER*, float) = UpdatePuffer;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -2579,7 +2579,7 @@ struct VTSUV
     void (*pfnUpdateSuv)(SUV*, float) = UpdateSuv;
     void (*pfnUpdateSuvXfWorld)(SUV*) = UpdateSuvXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -2676,7 +2676,7 @@ struct VTLGN
     void (*pfnUpdateLgn)(LGN*, float) = UpdateLgn;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -2773,7 +2773,7 @@ struct VTUNK0
     void (*pfnUpdatePo)(PO*, float) = UpdatePo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent) (SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject) = nullptr;
@@ -2870,7 +2870,7 @@ struct VTUNK1
     void (*pfnUpdatePo)(PO*, float) = UpdatePo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent) (SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject) = nullptr;
@@ -2940,14 +2940,14 @@ struct VTUNK1
 
 static VTUNK1 g_vtunk1;
 
-struct VTUNK2
+struct VTMGV
 {
     VT* pvtSuper = g_vtso.pvtSuper;
-    CID cid = CID_UNK2;
+    CID cid = CID_MGV;
     GRFCID grfcid = 0xB;
 
-    void*(*pfnNewUnk2)() = NewUnk2;
-    void (*pfnInitUnk2) (UNK2*) = InitUnk2;
+    MGV* (*pfnNewMgv)() = NewMgv;
+    void (*pfnInitMgv) (MGV*) = InitMgv;
     void (*pfnSetLoDefaults) (LO*) = SetLoDefaults;
     void (*pfnAddLo) (LO*) = AddLo;
     void (*pfnRemoveLo) (LO*) = RemoveLo;
@@ -2956,18 +2956,18 @@ struct VTUNK2
     void (*pfnOnPoAdd) (PO*) = OnPoAdd;
     void (*pfnOnPoRemove)(PO*) = OnPoRemove;
     void (*pfnCloneAloHierarchy)(ALO*, ALO*) = CloneAloHierarchy;
-    void (*pfnCloneUnk2) (UNK2*, UNK2*) = CloneUnk2;
-    void (*pfnLoadSoFromBrx) (SO*, CBinaryInputStream*) = LoadSoFromBrx;
+    void (*pfnCloneMgv) (MGV*, MGV*) = CloneMgv;
+    void (*pfnLoadMgvFromBrx) (MGV*, CBinaryInputStream*) = LoadMgvFromBrx;
     void (*pfnAddLoRecursive) = nullptr;
     void (*pfnRemoveLoRecursive) = nullptr;
     void (*pfnHandlePoMessage) = nullptr;
     void (*pfnSendSoMessage) = nullptr;
     void (*pfnBindAlo) (ALO*) = BindAlo;
     void (*pfnPostAloLoad) (ALO*) = PostAloLoad;
-    void (*pfnUpdatePo)(PO*, float) = UpdatePo;
+    void (*pfnUpdateMgv)(MGV*, float) = UpdateMgv;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent) (SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject) = nullptr;
@@ -2976,8 +2976,8 @@ struct VTUNK2
     void (*pfnUnsubscribeLoStruct) = nullptr;
     void (*pfnGetSoParams) = nullptr;
     void (*pfnUpdateLoLiveEdit) = nullptr;
-    int  (*pfnGetPoSize) () = GetPoSize;
-    void (*pfnDeleteUnk2) (UNK2*) = DeleteUnk2;
+    int  (*pfnGetMgvSize)() = GetMgvSize;
+    void (*pfnDeleteMgv) (MGV*) = DeleteMgv;
     void (*pfnProjectSoTransform) = nullptr;
     void (*pfnPresetSoAccel) = nullptr;
     void (*pfnTranslateSoToPos) (SO*, glm::vec3&) = TranslateSoToPos;
@@ -3035,7 +3035,7 @@ struct VTUNK2
     void (*pfnPlayPoDialog) = nullptr;
 };
 
-static VTUNK2 g_vtunk2;
+static VTMGV g_vtmgv;
 
 struct VTRIPG
 {
@@ -3064,7 +3064,7 @@ struct VTRIPG
     void (*pfnUpdateRipg) = nullptr;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -3150,7 +3150,7 @@ struct VTWATER
     void (*pfnUpdateWater)(WATER*, float) = UpdateWater;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -3236,7 +3236,7 @@ struct VTBRK
     void (*pfnUpdateBrk)(BRK*, float) = UpdateBrk;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -3323,7 +3323,7 @@ struct VTBREAK
     void (*pfnUpdateBrk)(BRK*, float) = UpdateBrk;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -3410,7 +3410,7 @@ struct VTALBRK
     void (*pfnUpdateBrk)(BRK*, float) = UpdateBrk;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -3497,7 +3497,7 @@ struct VTDARTGUN
     void (*pfnUpdateDartgun)(DARTGUN*, float) = UpdateDartgun;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -3584,7 +3584,7 @@ struct VTSWP
     void (*pfnUpdateSwp)(SWP*, float) = UpdateSwp;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -3671,7 +3671,7 @@ struct VTFRAGILE
     void (*pfnUpdateBrk)(BRK*, float) = UpdateBrk;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -3758,7 +3758,7 @@ struct VTZAPBREAK
     void (*pfnUpdateZapbreak)(ZAPBREAK*, float) = UpdateZapbreak;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -3845,7 +3845,7 @@ struct VTBRKP
     void (*pfnUpdateBrkp)(BRKP*, float) = UpdateBrkp;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -3931,7 +3931,7 @@ struct VTBUTTON
     void (*pfnUpdateButton)(BUTTON*, float) = UpdateButton;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -4017,7 +4017,7 @@ struct VTVOLBTN
     void (*pfnUpdateVolbtn)(VOLBTN*, float) = UpdateVolbtn;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -4103,7 +4103,7 @@ struct VTJLOVOL
     void (*pfnUpdateVolbtn)(VOLBTN*, float) = UpdateVolbtn;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -4189,7 +4189,7 @@ struct VTBONE
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -4275,7 +4275,7 @@ struct VTUNK17
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -4362,7 +4362,7 @@ struct VTSPRIZE
     void (*pfnUpdateSprize)(SPRIZE*, float) = UpdateSprize;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -4451,7 +4451,7 @@ struct VTSCPRIZE
     void (*pfnUpdateSprize)(SPRIZE*, float) = UpdateSprize;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -4540,7 +4540,7 @@ struct VTCLUE
     void (*pfnUpdateSprize)(SPRIZE*, float) = UpdateSprize;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -4629,7 +4629,7 @@ struct VTALARM
     void (*pfnUpdateAlarm)(ALARM*, float) = UpdateAlarm;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -4715,7 +4715,7 @@ struct VTSENSOR
     void (*pfnUpdateSensor)(SENSOR*, float) = UpdateSensor;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -4807,7 +4807,7 @@ struct VTLASEN
     void (*pfnUpdateLasen)(LASEN*, float) = UpdateLasen;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeLasen) = nullptr;
+    void (*pfnFreezeLasen)(LASEN*, int) = FreezeLasen;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -4899,7 +4899,7 @@ struct VTCAMSEN
     void (*pfnUpdateCamsen)(CAMSEN*, float) = UpdateCamsen;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -4991,7 +4991,7 @@ struct VTPRSEN
     void (*pfnUpdatePrsen)(PRSEN*, float) = UpdatePrsen;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -5083,7 +5083,7 @@ struct VTBARRIER
     void (*pfnUpdateBarrier)(BARRIER*, float) = UpdateBarrier;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -5169,7 +5169,7 @@ struct VTIKH
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -5255,7 +5255,7 @@ struct VTTZP
     void (*pfnUpdateTzp)(TZP*, float) = UpdateTzp;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -5341,7 +5341,7 @@ struct VTVOLZP
     void (*pfnUpdateVolzp)(VOLZP*, float) = UpdateVolzp;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -5427,7 +5427,7 @@ struct VTCNVO
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -5513,7 +5513,7 @@ struct VTHBSK
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -5599,7 +5599,7 @@ struct VTBOMB
     void (*pfnUpdateBomb)(BOMB*, float) = UpdateBomb;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -5685,7 +5685,7 @@ struct VTMISSILE
     void (*pfnUpdateBomb)(BOMB*, float) = UpdateBomb;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -5772,7 +5772,7 @@ struct VTACCMISS
     void (*pfnUpdateBomb)(BOMB*, float) = UpdateBomb;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -5859,7 +5859,7 @@ struct VTTARMISS
     void (*pfnUpdateTarmiss)(TARMISS*, float) = UpdateTarmiss;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -5946,7 +5946,7 @@ struct VTUNK3
     void (*pfnUpdateBomb)(BOMB*, float) = UpdateBomb;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -6032,7 +6032,7 @@ struct VTFLY
     void (*pfnUpdateFly)(FLY*, float) = UpdateFly;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeFly) = nullptr;
+    void (*pfnFreezeFly)(FLY*, int) = FreezeFly;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -6118,7 +6118,7 @@ struct VTRAT
     void (*pfnUpdateRat)(RAT*, float) = UpdateRat;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -6204,7 +6204,7 @@ struct VTROH
     void (*pfnUpdateRoh)(ROH*, float) = UpdateRoh;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -6290,7 +6290,7 @@ struct VTROC
     void (*pfnUpdateRoc)(ROC*, float) = UpdateRoc;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -6376,7 +6376,7 @@ struct VTROST
     void (*pfnUpdateRost)(ROST*, float) = UpdateRost;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -6462,7 +6462,7 @@ struct VTROP
     void (*pfnUpdateRop)(ROP*, float) = UpdateRop;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -6548,7 +6548,7 @@ struct VTDART
     void (*pfnUpdateDart)(DART*, float) = UpdateDart;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -6634,7 +6634,7 @@ struct VTJLO
     void (*pfnUpdateJlo)(JLO*, float) = UpdateJlo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -6720,7 +6720,7 @@ struct VTPUFFT
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -6806,7 +6806,7 @@ struct VTMRKV
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -6892,7 +6892,7 @@ struct VTUNK4
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -6978,7 +6978,7 @@ struct VTUNK5
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -7064,7 +7064,7 @@ struct VTUNK6
     void (*pfnUpdateSo)(SO*, float) = UpdateSo;
     void (*pfnUpdateSoXfWorld)(SO*) = UpdateSoXfWorld;
     void (*pfnUpdateSoXfWorldHierarchy)(SO*) = UpdateSoXfWorldHierarchy;
-    void (*pfnFreezeSo) = nullptr;
+    void (*pfnFreezeSo)(SO*, int) = FreezeSo;
     void (*pfnSetSoParent)(SO*, ALO*) = SetSoParent;
     void (*pfnApplySoProxy)(SO*, PROXY*) = ApplySoProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -7150,7 +7150,7 @@ struct VTBLIPG
     void (*pfnUpdateBlipg)(BLIPG*, float) = UpdateBlipg;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeBlipgObject) = nullptr;
@@ -7211,7 +7211,7 @@ struct VTCAMERA
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -7272,7 +7272,7 @@ struct VTLBONE
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -7333,7 +7333,7 @@ struct VTEMITTER
     void (*pfnUpdateEmitter)(EMITTER*, float) = UpdateEmitter;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -7394,7 +7394,7 @@ struct VTLIGHT
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateLightXfWorldHierarchy)(LIGHT*) = UpdateLightXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -7455,7 +7455,7 @@ struct VTSCH
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -7516,7 +7516,7 @@ struct VTCHKPNT
     void (*pfnUpdateChkpnt)(CHKPNT*, float) = UpdateChkpnt;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -7577,7 +7577,7 @@ struct VTPROXY
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -7638,7 +7638,7 @@ struct VTSKY
     void (*pfnUpdateSky)(SKY*, float) = UpdateSky;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -7699,7 +7699,7 @@ struct VTDPRIZE
     void (*pfnUpdateDprize)(DPRIZE*, float) = UpdateDprize;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -7761,7 +7761,7 @@ struct VTCHARM
     void (*pfnUpdateDprize)(DPRIZE*, float) = UpdateDprize;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -7823,7 +7823,7 @@ struct VTCOIN
     void (*pfnUpdateCoin)(COIN*, float) = UpdateCoin;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -7885,7 +7885,7 @@ struct VTLIFETKN
     void(*pfnUpdateDprize)(DPRIZE*, float) = UpdateDprize;
     void(*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void(*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void(*pfnFreezeAlo) = nullptr;
+    void(*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void(*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void(*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void(*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -7947,7 +7947,7 @@ struct VTKEY
     void (*pfnUpdateDprize)(DPRIZE*, float) = UpdateDprize;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8009,7 +8009,7 @@ struct VTGOLD
     void (*pfnUpdateDprize)(DPRIZE*, float) = UpdateDprize;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8044,7 +8044,6 @@ struct VTGOLD
 
 static VTGOLD g_vtgold;
 
-
 struct VTUNK7
 {
     VT* pvtSuper = g_vtdprize.pvtSuper;
@@ -8072,7 +8071,7 @@ struct VTUNK7
     void (*pfnUpdateDprize)(DPRIZE*, float) = UpdateDprize;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8107,8 +8106,6 @@ struct VTUNK7
 
 static VTUNK7 g_vtunk7;
 
-
-
 struct VTLOCK
 {
     VT* pvtSuper = g_vtalo.pvtSuper;
@@ -8136,7 +8133,7 @@ struct VTLOCK
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8197,7 +8194,7 @@ struct VTLOCKG
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8258,7 +8255,7 @@ struct VTTAIL
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8319,7 +8316,7 @@ struct VTROB
     void (*pfnUpdateRob)(ROB*, float) = UpdateRob;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8380,7 +8377,7 @@ struct VTFLASH
     void (*pfnUpdateFlash)(FLASH*, float) = UpdateFlash;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8441,7 +8438,7 @@ struct VTDYSH
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8502,7 +8499,7 @@ struct VTSCENTMAP
     void (*pfnUpdateScentmap)(SCENTMAP*, float) = UpdateScentmap;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8563,7 +8560,7 @@ struct VTTN
     void (*pfnUpdateTn)(TN*, float) = UpdateTn;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeTn) = nullptr;
+    void (*pfnFreezeTn)(TN*, int) = FreezeTn;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8624,7 +8621,7 @@ struct VTJLOC
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8685,7 +8682,7 @@ struct VTDIALOG
     void (*pfnUpdateDialog)(DIALOG*, float) = UpdateDialog;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8746,7 +8743,7 @@ struct VTSPEAKER
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8807,7 +8804,7 @@ struct VTWM
     void (*pfnUpdateWm)(WM*, float) = UpdateWm;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8868,7 +8865,7 @@ struct VTUNK8
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8929,7 +8926,7 @@ struct VTUNK9
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -8990,7 +8987,7 @@ struct VTUNK10
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -9052,7 +9049,7 @@ struct VTUNK11
     void (*pfnUpdateAlo)(ALO*, float) = UpdateAlo;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -9831,7 +9828,7 @@ struct VTEXIT
     void (*pfnUpdateExit) = nullptr;
     void (*pfnUpdateAloXfWorld)(ALO*) = UpdateAloXfWorld;;
     void (*pfnUpdateAloXfWorldHierarchy)(ALO*) = UpdateAloXfWorldHierarchy;
-    void (*pfnFreezeAlo) = nullptr;
+    void (*pfnFreezeAlo)(ALO*, int) = FreezeAlo;
     void (*pfnSetAloParent)(ALO*, ALO*) = SetAloParent;
     void (*pfnApplyAloProxy)(ALO*, PROXY*) = ApplyAloProxy;
     void (*pfnSubscribeLoObject)(LO*, LO*) = SubscribeLoObject;
@@ -10737,7 +10734,7 @@ static std::unordered_map <CID, void*> g_mpcidpvt =
     { CID_LGN, &g_vtlgn},
     { CID_UNK0, &g_vtunk0},
     { CID_UNK1, &g_vtunk1},
-    { CID_UNK2, &g_vtunk2},
+    { CID_MGV, &g_vtmgv},
     { CID_RIPG, &g_vtripg},
     { CID_WATER, &g_vtwater},
     { CID_BRK, &g_vtbrk},

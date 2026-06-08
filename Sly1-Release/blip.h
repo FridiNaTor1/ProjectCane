@@ -14,6 +14,17 @@ struct BLIPP
     float tCreated;
 };
 
+struct BLIPSX 
+{
+    glm::vec3 posFinal;
+    glm::vec3 vFinal;
+};
+
+struct BLIPSP 
+{
+    BLIPSX ablipsx[44];
+};
+
 struct BLIPV 
 {
     float x;
@@ -62,6 +73,7 @@ class BLIPG : public ALO
         int crgba;
         glm::vec4 argba[32];
         int fColorRanges;
+        int cqwTexture;
         BLIPOK blipok;
         float rSFlying;
         int cblipe;
@@ -78,6 +90,9 @@ void CloneBlipg(BLIPG *pblipg, BLIPG *pblipgBase);
 void OnBlipgAdd(BLIPG *pblipg);
 void OnBlipgRemove(BLIPG* pblipg);
 void SetBlipgShader(BLIPG *pblipg, OID oid);
+BLIP* PblipNew(BLIPG* pblipg);
+BLIPG* PblipgNew(SW* psw);
 void UpdateBlipg(BLIPG* pblipg, float dt);
+void SubscribeBlipgObject(BLIPG* pblipg, EMITTER* ploTarget);
 void RenderBlipgSelf(BLIPG *pblipg, CM *pcm, RO *pro);
 void DeleteBlipg(BLIPG *pblipg);

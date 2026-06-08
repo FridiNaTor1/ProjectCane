@@ -63,43 +63,92 @@ void LoadMatrixFromPosRotInverse(glm::vec3& pposSrc, glm::mat3& pmatSrc, glm::ma
 	(pmatDst)[2][3] = 0.0f;
 }
 
-void BuildOrthonormalMatrixZ(glm::vec3& pvecX, glm::vec3& pvecZ, glm::mat4& pmat)
+void BuildSimpleProjectionMatrix(float rx, float ry, float dxOffset, float dyOffset, float sNear, float sFar, glm::mat4& outMat)
 {
-	const glm::vec3 g_normalX = glm::vec3(1.0f, 0.0f, 0.0f);
+	outMat = glm::mat4(0.0f);
+
+	const float zScale = (sNear + sFar) / (sNear - sFar);
+
+	outMat[0][0] = rx;
+	outMat[1][1] = ry;
+
+	outMat[2][0] = dxOffset;
+	outMat[2][1] = dyOffset;
+	outMat[2][2] = zScale;
+	outMat[2][3] = 1.0f;
+
+	outMat[3][2] = sNear * (1.0f - zScale);
+}
+
+void BuildOrthonormalMatrixZ(glm::vec3& pvecX, glm::vec3& pvecZ, glm::mat3& pmat)
+{
+	constexpr float eps = 0.0001f;
 
 	glm::vec3 x = pvecX;
-	float xLen2 = glm::length2(x);
+	float len2x = glm::dot(x, x);
 
-	if (xLen2 < 0.0001f) {
-		x = g_normalX;
+	if (len2x < eps * eps)
+	{
+		x = glm::vec3(1.0f, 0.0f, 0.0f);
 	}
-	else {
-		x = glm::normalize(x);
+	else
+	{
+		x *= glm::inversesqrt(len2x);
 	}
 
-	// Compute Y = Z × X
 	glm::vec3 y = glm::cross(pvecZ, x);
-	float yLen2 = glm::length2(y);
+	float len2y = glm::dot(y, y);
 
-	if (yLen2 < 0.0001f) {
-		// Fallback if inputZ and x are nearly parallel
-		if (std::abs(x.x) < 0.9f)
-			y = glm::cross(x, glm::vec3(1.0f, 0.0f, 0.0f));
+	if (len2y < eps * eps)
+	{
+		glm::vec3 temp;
+
+		if (std::abs(x.x) <= std::abs(x.y))
+		{
+			if (std::abs(x.x) <= std::abs(x.z))
+				temp = glm::vec3(0.0f, x.z, -x.y);
+			else
+				temp = glm::vec3(x.y, -x.x, 0.0f);
+		}
 		else
-			y = glm::cross(x, glm::vec3(0.0f, 1.0f, 0.0f));
+		{
+			if (std::abs(x.y) <= std::abs(x.z))
+				temp = glm::vec3(x.z, 0.0f, -x.x);
+			else
+				temp = glm::vec3(x.y, -x.x, 0.0f);
+		}
+
+		y = glm::cross(x, temp);
+		float fallbackLen2 = glm::dot(y, y);
+
+		if (fallbackLen2 < 1e-8f)
+			y = glm::vec3(0.0f, 1.0f, 0.0f);
+		else
+			y *= glm::inversesqrt(fallbackLen2);
 	}
-	else {
-		y = glm::normalize(y);
+	else
+	{
+		y *= glm::inversesqrt(len2y);
 	}
 
-	// Recompute Z = X × Y to ensure orthogonality
 	glm::vec3 z = glm::cross(x, y);
 
-	// Store axes in columns of a 4x4 matrix (GLM is column-major)
-	pmat = glm::mat4(1.0f); // Identity matrix
-	pmat[0] = glm::vec4(x, 0.0f);  // X axis
-	pmat[1] = glm::vec4(y, 0.0f);  // Y axis
-	pmat[2] = glm::vec4(z, 0.0f);  // Z axis
+	pmat = glm::mat3(1.0f);
+	pmat[0] = x;
+	pmat[1] = y;
+	pmat[2] = z;
+}
+
+void CalculateDmat4(glm::mat4& pmat0, glm::mat4& pmat1, glm::mat4& pdmat)
+{
+	glm::mat4 matInv;
+
+	glm::vec3 pos = glm::vec3(pmat0[3]);
+	glm::mat3 rot = glm::mat3(pmat0);
+
+	LoadMatrixFromPosRotInverse(pos, rot, matInv);
+
+	pdmat = pmat1 * matInv;
 }
 
 glm::vec3 DecomposeRotateMatrixEuler(const glm::mat3& R)
@@ -254,6 +303,48 @@ void CalculateSinCos(float rad, float* pgSin, float* pgCos)
 {
 	*pgSin = std::sin(rad);
 	*pgCos = std::cos(rad);
+}
+
+void GetNormalVectors(const glm::vec3& vec, glm::vec3& axis1Out, glm::vec3& axis2Out, const glm::vec3& normalTry1, const glm::vec3& normalTry2)
+{
+	constexpr float kEpsilon = 0.0001f;
+
+	glm::vec3 axis1 = glm::cross(normalTry1, vec);
+	if (glm::dot(axis1, axis1) < kEpsilon) {
+		axis1 = glm::cross(normalTry2, vec);
+	}
+
+	glm::vec3 axis2 = glm::cross(vec, axis1);
+
+	float len1Sq = glm::dot(axis1, axis1);
+	float len2Sq = glm::dot(axis2, axis2);
+
+	axis1Out = (len1Sq > kEpsilon)
+		? axis1 * (1.0f / std::sqrt(len1Sq))
+		: glm::vec3(0.0f);
+
+	axis2Out = (len2Sq > kEpsilon)
+		? axis2 * (1.0f / std::sqrt(len2Sq))
+		: glm::vec3(0.0f);
+}
+
+void SetVectorCylind(glm::vec3& vec, float rad, float sXY, float sZ)
+{
+	vec.x = std::cos(rad) * sXY;
+	vec.y = std::sin(rad) * sXY;
+	vec.z = sZ;
+}
+
+void SetVectorSphere(glm::vec3* pvec, float radPan, float radTilt, float s)
+{
+	const float sinPan = std::sin(radPan);
+	const float cosPan = std::cos(radPan);
+	const float sinTilt = std::sin(radTilt);
+	const float cosTilt = std::cos(radTilt);
+
+	pvec->x = cosTilt * cosPan * s;
+	pvec->y = cosTilt * sinPan * s;
+	pvec->z = sinTilt * s;
 }
 
 glm::vec3 g_normalX = {1.0f, 0.0f, 0.0f};

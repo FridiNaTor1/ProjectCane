@@ -18,6 +18,18 @@ int GetStepSize()
 void UpdateStepXfWorld(STEP* pstep)
 {
 	UpdateSoXfWorld(pstep);
+
+    // Current facing angle from world matrix.
+    float currentRad = atan2f(pstep->xf.matWorld[0][1], pstep->xf.matWorld[0][0]);
+
+    // Difference between desired angle and current angle.
+    float drad = RadNormalize(pstep->radTarget - currentRad);
+
+    float absDrad = fabsf(drad);
+    float uRun =pstep->clqDradToURun.g0 + absDrad * (pstep->clqDradToURun.g1 + absDrad * pstep->clqDradToURun.g2);
+
+    // Clamp 0..1
+    pstep->uTarget = glm::clamp(uRun, 0.0f, 1.0f);
 }
 
 void RenderStepSelf(STEP* pstep, CM* pcm, RO* pro)

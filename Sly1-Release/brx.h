@@ -13,4 +13,4 @@ void LoadSwObjectsFromBrx(SW *psw, ALO *paloParent, CBinaryInputStream *pbis);
 DL* PdlFromSwOid(SW* psw, OID oid);
 // Loads all the options data for a LO
 void LoadOptionsFromBrx(void* pvObject, CBinaryInputStream *pbis);
-void LoadOptionFromBrx(void* pvObject, EOPID eopid, int eopidID, CBinaryInputStream* pbis);
+void LoadOptionFromBrx(void* pvObject, EOPID *eopid, int eopidID, CBinaryInputStream* pbis);

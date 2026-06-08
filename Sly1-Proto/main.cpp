@@ -30,7 +30,7 @@ int main(int cphzArgs, char* aphzArgs[])
 
             if (g_fRenderModels) {
                 RenderSw(g_psw, g_pcm);
-                //RenderSwAloAll(g_psw, g_pcm);
+                //RenderSwGlobset(g_psw, g_pcm);
                 DrawSw(g_psw, g_pcm);
             }
 

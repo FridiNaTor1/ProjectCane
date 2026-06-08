@@ -29,13 +29,6 @@ enum EGK
 	EGK_No = 2,
 	EGK_Max = 3
 };
-enum CT
-{
-	CT_Free = 0,
-	CT_Tangent = 1,
-	CT_Project = 2,
-	CT_Locked = 3
-};
 
 struct ZPD
 {
@@ -172,6 +165,7 @@ void LoadSoFromBrx(SO* pso, CBinaryInputStream* pbis); // NOT FINISHED
 void TranslateSoToPos(SO* pso, glm::vec3& ppos);
 void RotateSoToMat(SO* pso, glm::mat3& pmat);
 void UpdateSo(SO *pso, float dt); // NOT FINISHED
+void FreezeSo(SO* pso, int fFreeze);
 void RenderSoSelf(SO* pso, CM* pcm, RO* pro);
 // Delete SO from memory
 void DeleteSo(SO *pso);

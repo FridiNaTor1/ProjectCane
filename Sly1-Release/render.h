@@ -1,9 +1,10 @@
 ﻿#pragma once
 #include "so.h"
+#include "dysh.h"
 #include "light.h"
 #include "debug.h"
 
-void SetRpCount(RP rp, byte grfshd);
+void SetRpCount(GLOB* pglob, int fTransluscent);
 void AllocateRpl();
 // Loops through all objects in a level to see which object is in camera view and other conditions and stores all objects
 // in a render list
@@ -15,27 +16,37 @@ void SubmitRpl(RPL* prpl);
 void SubmitRplCel(RPLCEL* prplcel);
 // Sorts the draw list
 void SortRenderRpl();
-inline bool compareZ(RPL& prpl0, RPL& prpl1);
+inline bool compareZ(const RPL& prpl0, const RPL& prpl1);
 // Loops through that render list of objects to be rendered on the screen
 void DrawSw(SW* psw, CM* pcm);
-void BindRenderObject(RPL* prpl);
-void BindOneWay(RPL* prpl);
-void BindThreeWay(RPL* prpl);
-void BindRenderCelObject(RPLCEL* prplcel);
+void DrawDysh(RPL* prpl);
 void DrawGlob(RPL* prpl);
 void DrawCelBorder(RPLCEL* prplcel);
-void DrawProjVolume(RPL* prpl);
-void DrawProjVolumeAlphaAdd(RPL* prpl);
-void DrawProjVolumeAdd(RPL* prpl);
-void DrawMurkClear(RPL* prpl);
-void DrawMurkFill(RPL* prpl);
-void DrawTranslucent(RPL* prpl);
-void DrawBlip(RPL *prpl);
+void DrawSubGlob(int baseVertex, int firstIndex, int indexCount);
+void DrawProjVolume(int baseVertex, int firstIndex, int indexCount);
+void DrawProjVolumeAlphaAdd(int baseVertex, int firstIndex, int indexCount);
+void DrawProjVolumeAdd(int baseVertex, int firstIndex, int indexCount);
+void DrawMurkClear(int baseVertex, int firstIndex, int indexCount);
+void DrawMurkFill(int baseVertex, int firstIndex, int indexCount);
+void DrawTranslucent(int baseVertex, int firstIndex, int indexCount);
 // Draws all collision models in SW
 void DrawSwCollisionAll(CM* pcm);
 
 extern int numRo;
 extern int numRoCel;
+
+extern int g_cFrameGlobs;
+
+extern int g_cFrameCelGlobs;
+
+extern int g_cframe;
+
+extern int g_boundVAO;
+
+extern int g_shdIDBound;
+extern int g_lastAnimateUv;
+
+extern int g_grfshd;
 
 extern int g_dynamicTextureCount;
 extern std::vector <RPL> g_dynamicTexturePrpl;
@@ -111,3 +122,5 @@ extern std::vector <RPL> g_worldMapPrpl;
 
 extern int g_maxCount;
 extern std::vector <RPL> g_maxPrpl;
+
+extern bool g_fVsync;

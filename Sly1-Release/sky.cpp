@@ -20,7 +20,7 @@ void CloneSky(SKY* psky, SKY* pskyBase)
 void PostSkyLoad(SKY* psky)
 {
 	PostAloLoad(psky);
-	*(unsigned long*)&psky->bitfield = *(unsigned long*)&psky->bitfield | 0x10000000000;
+	psky->fNoFreeze = 1;
 }
 
 void UpdateSky(SKY* psky, float dt)

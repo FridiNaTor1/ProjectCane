@@ -23,9 +23,6 @@ int GetProxySize()
 
 void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 {
-	//numProxy++;
-	//std::cout << numProxy << "\n";
-
 	// Proxy source objects to keep track of
 	std::vector <LO*> proxyObjs;
 
@@ -114,7 +111,7 @@ void LoadProxyFromBrx(PROXY* pproxy, CBinaryInputStream* pbis)
 
 		if (pbis->S8Read() == 2)
 		{
-			*(unsigned long*)&pvObject->bitfield = *(unsigned long*)&pvObject->bitfield & 0xffffffffcfffffff | 0x20000000;
+			pvObject->mrds = 2;
 
 			float sMRD = pbis->F32Read();
 

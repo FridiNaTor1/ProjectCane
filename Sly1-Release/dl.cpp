@@ -135,4 +135,46 @@ int FIsDlEmpty(DL* pdl)
 		return 0;
 }
 
+void MergeDl(DL* dst, DL* src)
+{
+	if (src->pvFirst == nullptr)
+		return;
+
+	// If destination is empty, just transfer the whole list.
+	if (dst->pvFirst == nullptr)
+	{
+		dst->pvFirst = src->pvFirst;
+		dst->pvLast = src->pvLast;
+		dst->ibDle = src->ibDle;
+
+		ClearDl(src);
+		return;
+	}
+
+	// Both lists have entries: link dst tail to src head.
+	DLE* dstLast  = PdleFromDlEntry(dst, dst->pvLast);
+	DLE* srcFirst = PdleFromDlEntry(src, src->pvFirst);
+
+	dstLast->pvNext = src->pvFirst;
+	srcFirst->pvPrev = dst->pvLast;
+
+	dst->pvLast = src->pvLast;
+
+	ClearDl(src);
+}
+
+int CPvDl(DL* pdl)
+{
+	int count = 0;
+	void* current = pdl->pvFirst;
+
+	while (current != nullptr)
+	{
+		current = *(void**)((char*)current + pdl->ibDle);
+		++count;
+	}
+
+	return count;
+}
+
 DLI* s_pdliFirst = nullptr;

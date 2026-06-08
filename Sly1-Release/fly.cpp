@@ -73,6 +73,18 @@ void LoadFlyFromBrx(FLY* pfly, CBinaryInputStream* pbis)
 	LoadSoFromBrx(pfly, pbis);
 }
 
+void FreezeFly(FLY* pfly, int fFreeze)
+{
+    if (pfly->flyk == FLYK_Insect) {
+        if (fFreeze == 0) {
+            //StartSound(SFXID_NpcBuzzingFlies, &pfly->pambBuzz, (ALO*)pfly, (VECTOR*)0x0, 700.0, 10.0, 1.0, 0.0, 0.0, (LM*)0x0, (LM*)0x0);
+        }
+        else {
+            //StopSound(pfly->pambBuzz, 0);
+        }
+    }
+}
+
 void PostFlyLoad(FLY* pfly)
 {
     PostAloLoad(pfly);

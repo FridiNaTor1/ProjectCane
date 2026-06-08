@@ -52,6 +52,16 @@ void UpdateSmartguard(SMARTGUARD* psmartguard, float dt)
     UpdateStepguard(psmartguard, dt);
 }
 
+void FreezeSmartguard(SMARTGUARD* psmartguard, int fFreeze)
+{
+    FreezeSo(psmartguard, fFreeze);
+
+    if (fFreeze != 0) {
+        //UnsetExcitement(psmartguard->pexcSneak);
+        psmartguard->pexcSneak = nullptr;
+    }
+}
+
 void DeleteSmartGuard(SMARTGUARD* psmartguard)
 {
 	delete psmartguard;

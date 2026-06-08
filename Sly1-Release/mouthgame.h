@@ -9,22 +9,30 @@ struct MGCO
     DLE dle;
 };
 
+struct TMBL 
+{
+    struct ALO* palo;
+    struct SM* psmDial;
+    struct SMA* psmaDial;
+};
+
 class MGC : public ALO
 {
 	public:
-        struct SM* psmGenerate;
-        struct SMA* psmaGenerate;
-        struct SM* psmCollect;
-        struct SMA* psmaCollect;
-        struct ASEG* pasegPath;
-        struct VOL* pvolSmash;
-        struct VOL* pvolHole;
-        DL dlMgcoFree;
-        DL dlMgco;
-        int fDamaging;
-        struct EXPL* pexplGood;
-        struct EXPL* pexplBad;
-        struct MGV* pmgv;
+
+    struct SM* psmGenerate;
+    struct SMA* psmaGenerate;
+    struct SM* psmCollect;
+    struct SMA* psmaCollect;
+    struct ASEG* pasegPath;
+    struct VOL* pvolSmash;
+    struct VOL* pvolHole;
+    DL dlMgcoFree;
+    DL dlMgco;
+    int fDamaging;
+    struct EXPL* pexplGood;
+    struct EXPL* pexplBad;
+    struct MGV* pmgv;
 };
 
 MGC* NewMgc();

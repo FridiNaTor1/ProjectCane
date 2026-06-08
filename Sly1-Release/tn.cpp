@@ -41,7 +41,7 @@ void LoadTnFromBrx(TN* ptn, CBinaryInputStream* pbis)
     else
     {
         ptn->pcrv = PcrvNew((CRVK)crvk);
-        ptn->pcrv->pvtcrvl->pfnLoadCrvlFromBrx(std::static_pointer_cast<CRVL> (ptn->pcrv), pbis);
+        ptn->pcrv->pvtcrvl->pfnLoadCrvlFromBrx((CRVL*)ptn->pcrv.get(), pbis);
     }
 
     LoadOptionsFromBrx(ptn, pbis);
@@ -118,6 +118,15 @@ void UpdateTn(TN* ptn, float dt)
 void RenderTnSelf(TN* ptn, CM* pcm, RO* pro)
 {
     RenderAloSelf(ptn, pcm, pro);
+}
+
+void FreezeTn(TN* ptn, int fFreeze)
+{
+    FreezeAlo(ptn, fFreeze);
+
+    if (fFreeze != 0) {
+        //SetTnTns(ptn, TNS_Out);
+    }
 }
 
 void DeleteTn(TN *ptn)

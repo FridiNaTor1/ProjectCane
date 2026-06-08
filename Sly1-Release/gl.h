@@ -25,79 +25,67 @@ struct CMGL
 	glm::vec4 cameraPos;
 };
 
-struct alignas(16) ROONEWAY
+struct alignas(16) ROGL
 {
-	glm::mat4 model;       //  0 -  63
-	int       rko;         //  64
-	float     uAlpha;      //  68
-	float     uFog;        //  72
-	float     darken;      //  76
-	glm::vec2 uvOffsets;   //  80 -  87
-	int       _pad0;       //  88
-	int       _pad1;       //  92
-	int       warpType;    //  96
-	int       warpCmat;    // 100
-	int       warpCvtx;    // 104
-	int       _padWarp0;   // 108
-	int       _padWarp1;   // 112
-	int       _padWarp2;   // 116
-	int       _padWarp3;   // 120
-	int       _padWarp4;   // 124
-	glm::mat4 amatDpos[4]; // 128 - 383
-	glm::mat4 amatDuv[4];  // 384 - 639
-};
-
-struct alignas(16) ROTHREEWAY
-{
-	glm::mat4 model;       //  0 -  63
-	int       rko;         //  64
-	float     uAlpha;      //  68
-	float     uFog;        //  72
-	float     darken;      //  76
-	glm::vec2 uvOffsets;   //  80 -  87
-	int       _pad0;       //  88
-	int       _pad1;       //  92
-	int       warpType;    //  96
-	int       warpCmat;    // 100
-	int       warpCvtx;    // 104
-	int       _padWarp0;   // 108
-	int       _padWarp1;   // 112
-	int       _padWarp2;   // 116
-	int       _padWarp3;   // 120
-	int       _padWarp4;   // 124
-	glm::mat4 amatDpos[4]; // 128 - 383
-	glm::mat4 amatDuv[4];  // 384 - 639
-	int       fDynamic;    // 640
-	float     unSelfIllum; // 644
-	float     sRadius;     // 648
-	int       _pad2;       // 652
-	glm::vec4 posCenter;   // 656 - 671
+	glm::mat4 model;         //   0 -  63
+	float     uAlpha;        //  64 -  67
+	float     uFog;          //  68 -  71
+	float     darken;        //  72 -  75
+	int32_t   grfglob;       //  76 -  79
+	int32_t   pad0;          //  80 -  83
+	int32_t   warpType;      //  84 -  87
+	int32_t   warpCmat;      //  88 -  91
+	int32_t   warpCvtx;      //  92 -  95
+	glm::mat4 amatDpos[4];   //  96 - 351
+	glm::mat4 amatDuv[4];    // 352 - 607
+	int32_t   fDynamic;      // 608 - 611
+	float     sRadius;       // 612 - 615
+	int32_t   fDynamicLight; // 616 - 619
+	int32_t   trlk;          // 620 - 623
+	glm::vec4 posCenter;     // 624 - 639
 };
 
 struct alignas(16) ROCEL
 {
-	glm::mat4 model;           
-	glm::vec4 celRgba;         
+	glm::mat4 model;
+	glm::vec4 celRgba;
 	float     uAlphaCelBorder;
 };
 
-struct ROGEOM
+struct STREAM
 {
-	glm::mat4 model;
+	GLuint bufferObject;
+	GLuint bindIndex;
+	GLsizeiptr frameBase;
+	GLsizeiptr cursor;
+	GLsizeiptr stride; // use GLsizeiptr, not GLuint
+	GLsizeiptr frameSize; // bytes in this frame slice
+	uint8_t* mappedPtr;
+	GLsync* fences; // length = g_frames
 };
 
 class GL
 {
 	public:
-
 	// Window Object
-	GLFWwindow *window;
+	GLFWwindow* window;
 	// Frame Buffer Object
 	GLuint fbo;
 	// Frame Buffer Color
 	GLuint fbc;
 	// Render Buffer Object
 	GLuint rbo;
+
+	GLuint dyshFbo;
+	GLuint dyshFbc;
+	GLuint dyshRbo;
+
+	int dyshWidth;
+	int dyshHeight;
+
+	GLuint fboMSAA;
+	GLuint rboColorMSAA;
+	GLuint rboDepthStencilMSAA;
 
 	// Screen Array Object
 	GLuint sao;
@@ -121,23 +109,26 @@ class GL
 	AspectMode aspectMode;
 
 	void InitGL();
+	void CreateFramebuffers(int w, int h);
+	void ResizeFramebuffers(int w, int h);
 	void UpdateGLProjections();
 	void TerminateGL();
 };
 
-void InitCameraSbo();
-void InitRopUbo();
-void InitRcbUbo();
-void InitGeomUbo();
+void InitCameraUbo();
+void InitFrameStream(STREAM* pstream, int streamSize);
+void BeginFrameStream(STREAM* pstream);
+void AppendStream(STREAM* pstream, void* ptr, int size, int copySize);
+void EndFrameStream(STREAM* pstream);
+void DeleteFrameStream(STREAM* pstream);
+void ApplyMsaaSettings();
 void FrameBufferSizeCallBack(GLFWwindow* window, int width, int height);
 
 extern GL g_gl;
-extern GLuint cmSSBO;
-extern GLuint ropUBO;
-extern GLuint rcbUBO;
+extern GLuint cmUBO;
+extern STREAM ropStream;
+extern STREAM rcbStream;
 extern GLuint geomUBO;
-extern GLuint activeLightsSbo;
-extern GLuint screenQuadMatrixLoc;
 extern GLuint glslLsmShadow;
 extern GLuint glslLsmDiffuse;
 extern GLuint glslFogType;
@@ -146,4 +137,23 @@ extern GLuint glslFogFar;
 extern GLuint glslFogMax;
 extern GLuint glslFogColor;
 extern GLuint glslfAlphaTest;
+extern GLuint glslAlphaCutOff;
+extern GLuint glslRko;
+extern GLuint glslfAnimateUv;
+extern GLuint glsluvOffsets;
+extern GLuint glslUnSelfIllum;
+extern GLuint glslSubGlobPosCenter;
+extern GLuint glslSubGlobRadius;
+extern GLuint glslDyshMatWorldClip;
+extern GLuint glslDyshModel;
+extern GLuint glslAmbientMap;
+extern GLuint glslDiffuseMap;
+extern GLuint glslSaturateMap;
+extern GLuint glslGeomModelToClip;
+extern GLuint u_fontTexLoc;
 extern GLuint glslfCull;
+extern uint64_t screenTextureHandle;
+extern GLuint g_sceneFbo;
+extern int g_msaaSamples;
+extern bool g_fMsaa;
+extern int g_frames;

@@ -8,6 +8,22 @@ SUV* NewSuv()
 void InitSuv(SUV* psuv)
 {
 	InitPo(psuv);
+
+    /*psuv->sRadiusFrontWheel = 50.0f;
+    psuv->sRadiusRearWheel = 50.0f;
+
+    psuv->svMax = 3000.0f;
+    psuv->dyMax = 1300.0f;
+
+    psuv->muSxp = 2.0f;
+
+    psuv->cLapMax = 3;
+
+    psuv->clqTune = s_clqTune_994;
+
+    std::memcpy(psuv->asvrb, s_asvrb_993, sizeof(psuv->asvrb));
+
+    ResetSuv(psuv);*/
 }
 
 int GetSuvSize()
@@ -18,16 +34,139 @@ int GetSuvSize()
 void UpdateSuvXfWorld(SUV* psuv)
 {
 	UpdateSoXfWorld(psuv);
+    UpdateSuvShapes(psuv);
 }
 
 void PostSuvLoad(SUV* psuv)
 {
     PostAloLoad(psuv);
+
+    //SnipAloObjects(psuv, 0x14, s_asnip_998);
+
+    //// Store current facing angle as target angle.
+    //psuv->radTarget = atan2f(psuv->xf.mat[0][1], psuv->xf.mat[0][0]);
+
+    //// Setup puncher state machine.
+    //if (psuv->psmPuncher != nullptr)
+    //{
+    //    SMA* psma = PsmaApplySm(psuv->psmPuncher, psuv, OID_Nil, 0);
+
+    //    OID oidGoal = OID_passive;
+
+    //    if (psuv->suvgk == SUVGK_Chase)
+    //        oidGoal = OID_state_ready;
+
+    //    psuv->psmaPuncher = psma;
+
+    //    SetSmaGoal(psma, oidGoal);
+    //}
+
+    //// Start SUV engine sounds.
+    //StartSound(SFXID_EnvCarEngine1_Muggshot, &psuv->pambRunning, psuv, nullptr, 6000.0f, 1000.0f, 1.0f,2.0f, 0.0f, nullptr, nullptr);
+
+    //StartSound(SFXID_EnvRaceMurrayIdle_Muggshot, &psuv->pambIdle, psuv, nullptr, 6000.0f, 1000.0f, 1.0f, 2.0f, 0.0f, nullptr, nullptr);
+
+    //// Random top wobble / frequency offset.
+    //psuv->dfrqTop = GRandInRange(-0.2f, 0.2f);
+
+    //// Find Murray for auto-collect.
+    //MURRAY* pmurray = reinterpret_cast<MURRAY*>(PloFindSwObject(g_psw, 0x104, OID_murray, psuv));
+
+    //if (pmurray != nullptr)
+    //{
+    //    psuv->pzi.paloCollect = reinterpret_cast<ALO*>(pmurray);
+    //    psuv->pzi.sAutoCollect = 200.0f;
+    //    psuv->pmurray = pmurray;
+    //}
+
+    //// Chase mode setup.
+    //if (psuv->suvgk == SUVGK_Chase)
+    //{
+    //    LO* aplo[16]{};
+
+    //    int count = CploFindSwObjects(psuv->psw, 0x105, OID_suv_prize, nullptr, 16, aplo);
+
+    //    for (int i = 0; i < count; ++i)
+    //        aplo[i]->pvtlo->pfnSubscribeLoObject(aplo[i], psuv);
+
+    //    memset(g_scores.an, 0, sizeof(g_scores.an));
+    //}
+
+    //// Initialize suspension/wheel current positions.
+    //for (int i = 0; i < 4; ++i)
+    //{
+    //    SXP& sxp = psuv->asxp[i];
+
+    //    if (sxp.paloWheel != nullptr)
+    //        sxp.posCur = sxp.paloWheel->xf.pos;
+    //}
+
+    //ResetSuv(psuv);
 }
 
 void UpdateSuv(SUV* psuv, float dt)
 {
+    int cpsuvInFront = 0;
+
     UpdatePo(psuv, dt);
+
+    //switch (psuv->suvs)
+    //{
+    //    case SUVS_Auto:
+    //    {
+    //        UpdateSuvBalance(psuv);
+    //        UpdateSuvLine(psuv, &cpsuvInFront);
+    //        UpdateSuvHeading(psuv);
+    //        break;
+    //    }
+
+    //    case SUVS_Stop:
+    //    {
+    //        psuv->svTarget = 0.0f;
+    //        break;
+    //    }
+
+    //    case SUVS_Manual:
+    //    default:
+    //    {
+    //        break;
+    //    }
+    //}
+
+    //UpdateSuvSounds(psuv, dt);
+    //UpdateSuvWheels(psuv);
+    //UpdateSuvExpls(psuv);
+    //UpdateSuvVolumes(psuv, cpsuvInFront);
+    //UpdateSuvPuncher(psuv);
+
+    //// mat[2][2] / forward-up or up-z check depending on matrix layout.
+    //if (psuv->xf.mat[2][2] > 0.5f)
+    //    psuv->tUpright = g_clock.t;
+
+    //if (psuv->suvs != SUVS_Stop)
+    //    ResolveAlo(psuv);
+}
+
+void UpdateSuvShapes(SUV* psuv)
+{
+    /*if (psuv->pshapeTrack == nullptr)
+        return;
+
+    CRV* pcrv = psuv->pshapeTrack->pcrv.get();
+
+    glm::vec3 posClosest{};
+    glm::vec3 normalClosest{};
+
+    auto pfnFindClosest = pcrv->pvtcrv->pfnFindCrvClosestPointFromU;
+
+    if (pfnFindClosest != nullptr)
+        pfnFindClosest(psuv->uTrack, pcrv, &psuv->xf.pos, 0, &posClosest, &normalClosest, &psuv->uTrack, 0);
+
+    glm::vec3 normal = glm::normalize(glm::cross(g_normalZ, normalClosest));
+
+    psuv->sTrack = pcrv->pvtcrv->pfnSFromCrvU(psuv->uTrack);
+
+    psuv->dyTrack = glm::dot(psuv->xf.pos - posClosest, normal);*/
 }
 
 void RenderSuvSelf(SUV* psuv, CM* pcm, RO* pro)

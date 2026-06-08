@@ -79,7 +79,7 @@ public:
 	struct MQ* pmqCallbackFirst;
 	struct MQ* pmqCallbackLast;
 	int cpaloRemerge;
-	struct ALO** apaloRemerge;
+	std::vector <ALO*> apaloRemerge;
 	// Object's gravity
 	glm::vec3 dvGravity;
 	int csplcSplice;
@@ -157,14 +157,18 @@ void*GetSwIllum(SW* psw);
 void*GetSwIllumShadow(SW* psw);
 void SetSwIllum(SW* psw, float uMidtone);
 void SetSwIllumShadow(SW* psw, float uShadow);
+void*GetSwSkyRgba(SW *psw);
 void*GetSwDarken(SW* psw);
 void SetSwDarken(SW* psw, float rDarken);
 void*GetSwDarkenSmooth(SW* psw);
 void SetSwDarkenSmooth(SW* psw, float rDarkenSmooth);
 void MatchSwObject(ALO* ploMatch, GRFFSO grffsoMask, int fIncludeRemoved, int fProxyMatch, LO* ploContext, int cploMax, int* pcploMatch, LO** aplo, int* pcpaloBest);
 int  CploFindSwObjects(SW* psw, GRFFSO grffso, OID oid, LO* ploContext, int cploMax, LO** aplo);
+int  FIsCidDerivedFrom(CID cid, CID cidAncestor);
+int  CploFindSwObjectsByClass(SW* psw,GRFFSO grffso, CID cid, LO* ploContext, int cploMax, LO** aplo);
 // Finds a LO
 LO* PloFindSwObject(SW* psw, GRFFSO grffso, OID oid, LO* ploContext);
+LO* PloFindSwChild(SW* psw, OID oid, ALO* paloAncestor);
 LO* PloFindSwNearest(SW* psw, OID oid, LO* ploContext);
 void DeleteSwCollision();
 // Delete SW object
@@ -174,3 +178,4 @@ void DeleteWorld(SW* psw);
 
 // Global pointer to parent scene world object
 extern SW* g_psw;
+extern glm::vec4 rgbaSky;

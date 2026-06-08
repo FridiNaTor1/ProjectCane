@@ -3,6 +3,8 @@
 #include "glob.h"
 #include "act.h"
 #include "wr.h"
+#include "shadow.h"
+#include "freeze.h"
 
 enum ACK
 {
@@ -84,6 +86,14 @@ enum THROBK
 	THROBK_Max = 6
 };
 
+enum CT
+{
+	CT_Free = 0,
+	CT_Tangent = 1,
+	CT_Project = 2,
+	CT_Locked = 3
+};
+
 struct XF
 {
 	glm::mat3 mat;
@@ -115,6 +125,14 @@ struct SNIP
 	int grfsnip;
 	OID oid;
 	int ib;
+};
+
+struct THROB 
+{
+	THROBK throbk;
+	glm::vec3 hsvIn;
+	glm::vec3 hsvOut;
+	float dtInOut;
 };
 
 enum IAK
@@ -236,33 +254,20 @@ struct FICG
 	byte grficShock;
 };
 
-struct BITFIELD
+struct FRZ
 {
-	// First Byte
-	unsigned int mtlk : 8;
-	// Second Byte
-	unsigned int zons : 2;
-	unsigned int viss : 2;
-	unsigned int mrds : 2;
-	unsigned int dms : 2;
-	// Third Byte
-	unsigned int fHidden : 1;
-	unsigned int fFixedPhys : 1;
-	unsigned int fMtlkFromDls : 1;
-	unsigned int fWater : 1;
-	unsigned int fForceCameraFade : 1;
-	unsigned int fBusy : 1;
-	unsigned int fFrozen : 1;
-	unsigned int fRemerge : 1;
-	// Fourth Byte
-	unsigned int fNoFreeze : 1;
-	unsigned int cpaloFindSwObjects : 4;
-	unsigned int fApplyAseg : 1;
+	CT ctForce;
+	CT ctTorque;
+	glm::vec3 v;
+	glm::vec3 w;
+	unsigned int fLockedSelf : 1;
+	unsigned int fLockedAll : 1;
 };
 
 class ALO : public LO
 {
 	public:
+
 	DL dlChild;
 	DLE dleBusy;
 	DLE dleMRD;
@@ -276,7 +281,7 @@ class ALO : public LO
 	float sCelBorderMRD;
 	GRFZON grfzon;
 	float dsMRDSnap;
-	char frz[64];
+	FRZ frz;
 	XF xf;
 	glm::vec3 posOrig;
 	glm::mat3 matOrig;
@@ -299,7 +304,7 @@ class ALO : public LO
 	std::shared_ptr <ALOX> palox;
 	int cframeStatic;
 	GLOBSET globset;
-	struct SHADOW *pshadow;
+	std::shared_ptr <SHADOW> pshadow;
 	struct THROB *pthrob;
 	float sFastShadowRadius;
 	float sFastShadowDepth;
@@ -316,7 +321,22 @@ class ALO : public LO
 	std::vector <POSEC> aposec;
 	struct ACTREF *pactrefCombo;
 	struct DLR *pdlrFirst;
-	BITFIELD bitfield;
+	int mtlk : 8;
+	unsigned int zons : 2;
+	unsigned int viss : 2;
+	unsigned int mrds : 2;
+	unsigned int dms : 2;
+	unsigned int fHidden : 1;
+	unsigned int fFixedPhys : 1;
+	unsigned int fMtlkFromDls : 1;
+	unsigned int fWater : 1;
+	unsigned int fForceCameraFade : 1;
+	unsigned int fBusy : 1;
+	unsigned int fFrozen : 1;
+	unsigned int fRemerge : 1;
+	unsigned int fNoFreeze : 1;
+	unsigned int cpaloFindSwObjects : 4;
+	unsigned int fApplyAseg : 1;
 	ACK ackRot;
 };
 
@@ -339,6 +359,9 @@ void AdjustAloRtckMat(ALO* palo, CM* pcm, RTCK rtck, glm::vec3* pposCenter, glm:
 void CloneAloHierarchy(ALO* palo, ALO* paloBase);
 // Makes a copy of ALO object
 void CloneAlo(ALO* palo, ALO* paloBase);
+bool FIsZeroV(const glm::vec3& v);
+bool FIsZeroW(const glm::vec3& w);
+int  FIsAloStatic(ALO* palo);
 void ResolveAlo(ALO* palo);
 // Sets a Alo object to a parent
 void SetAloParent(ALO* palo, ALO* paloParent);
@@ -362,6 +385,8 @@ void ConvertAloMat(ALO* paloFrom, ALO* paloTo, glm::mat3& pmatFrom, glm::mat3& p
 void SetAloInitialVelocity(ALO* palo, glm::vec3* pv);
 void SetAloInitialAngularVelocity(ALO* palo, const glm::vec3* pw);
 ASEGD* PasegdEnsureAlo(ALO* palo);
+SHADOW* PshadowAloEnsure(ALO* palo);
+SHADOW* PshadowInferAlo(ALO* palo);
 void SetAloAsegdOid(ALO* palo, short oid);
 void SetAloAsegdtLocal(ALO* palo, float tLocal);
 void SetAloAsegdSvtLocal(ALO* palo, float svtLocal);
@@ -371,7 +396,22 @@ void SetAloEuler(ALO* palo, glm::vec3* peul);
 void SetAloVelocityLocal(ALO* palo, glm::vec3* pvec);
 void SetAloFastShadowRadius(ALO* palo, float sRadius);
 void SetAloFastShadowDepth(ALO* palo, float sDepth);
-void SetAloCastShadow(ALO* palo, int fCastShadow);
+void SetAloCastShadow(ALO* palo, byte fCastShadow);
+void SetAloShadowShader(ALO* palo, OID oidShdShadow);
+void GetAloShadowShader(ALO* palo, OID* poidShdShadow);
+void GetAloShadowNearRadius(ALO* palo, float* psNearRadius);
+void SetAloShadowNearRadius(ALO* palo, float sNearRadius);
+void SetAloShadowFarRadius(ALO* palo, float sFarRadius);
+void GetAloShadowFarRadius(ALO* palo, float* psFarRadius);
+void SetAloShadowNearCast(ALO* palo, float sNearCast);
+void GetAloShadowNearCast(ALO* palo, float* psNearCast);
+void SetAloShadowFarCast(ALO* palo, float sFarCast);
+void GetAloShadowFarCast(ALO* palo, float* psFarCast);
+void SetAloShadowConeAngle(ALO* palo, float degConeAngle);
+void GetAloShadowConeAngle(ALO* palo, float* pdegConeAngle);
+void SetAloShadowFrustrumUp(ALO* palo, glm::vec3* pvecUp);
+void GetAloShadowFrustrumUp(ALO* palo, glm::vec3* pvecUp);
+void SetAloDynamicShadowObject(ALO* palo, OID oidDysh);
 void SetAloNoFreeze(ALO* palo, int fNoFreeze);
 void SetAloRestorePosition(ALO* palo, int fRestore);
 void SetAloRestorePositionAck(ALO* palo, ACK ack);
@@ -425,6 +465,8 @@ void SetAloInteractShock(ALO* palo, int grfic);
 void SetAloPoseCombo(ALO* palo, OID oidCombo);
 void SetAloForceCameraFade(ALO* palo, int fFade);
 void SetAloCelRgba(ALO* palo, RGBA prgba);
+void SetAloOverrideCel(ALO* palo, glm::vec4* rgba);
+void UpdateAloThrob(ALO* palo, float dt);
 //GOTTA COME BACK TO THIS
 void*GetAloFrozen(ALO* palo);
 void*GetAloXfPos(ALO* palo);
@@ -468,6 +510,7 @@ void GetAloInteractCaneSmash(ALO* palo, int* pgrfic);
 void GetAloInteractBomb(ALO* palo, int* pgrfic);
 void GetAloInteractShock(ALO* palo, int* pgrfic);
 void*GetAlofRealClock(ALO* palo);
+void CalculateAloMovement(ALO* paloLeaf, ALO* paloBasis, glm::vec3& pos, glm::vec3* pv, glm::vec3* pw, glm::vec3* pdv, glm::vec3* pdw);
 // Loads ALO object from binary file
 void LoadAloFromBrx(ALO* palo, CBinaryInputStream* pbis);
 // Loads bone data from binary file
@@ -477,8 +520,10 @@ void SnipAloObjects(ALO* palo, int csnip, SNIP* asnip);
 void PostAloLoad(ALO *palo);
 // Updates ALO object
 void UpdateAlo(ALO* palo, float dt);
+void RenderFastShadow(ALO* palo, CM* pcm, RO* pro);
 void RenderAloAll(ALO* palo, CM* pcm, RO* pro);
 void RenderAloSelf(ALO* palo, CM* pcm, RO* pro);
+void FreezeAlo(ALO* palo, int fFreeze);
 void DupAloRo(ALO* palo, RO* proOrig, RO* proDup);
 void RenderAloGlobset(ALO* palo, CM* pcm, RO* pro);
 void RenderAloLine(ALO* palo, CM* pcm, glm::vec3* ppos0, glm::vec3* ppos1, float rWidth, float uAlpha);

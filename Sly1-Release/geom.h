@@ -47,3 +47,5 @@ struct GEOM
 
 void InitGeom(GEOM *pgeom);
 void ReadGeom(GEOM *pgeom, CBinaryInputStream *pbis);
+void CloneGeom(GEOM* pgeomSrc, glm::mat4* pdmat, GEOM* pgeomDst);
+void UpdateGeomWorld(GEOM* pgeomLocal, GEOM* pgeomWorld, glm::vec3& pos, glm::mat3& mat);

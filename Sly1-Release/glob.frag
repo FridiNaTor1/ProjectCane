@@ -1,13 +1,20 @@
 #version 430 core
+#extension GL_ARB_bindless_texture : require
 
 #define RKO_OneWay   0
 #define RKO_ThreeWay 1
 
-uniform sampler2D shadowMap;
+#define FOG_NONE 0
+#define FOG_PS2  1
+#define FOG_PS3  2
+
+#define MAX_OBJECT_SHADOWS 16
+
+uniform sampler2D ambientMap;
 uniform sampler2D diffuseMap;
 uniform sampler2D saturateMap;
 
-struct SWP // Scene world properties
+struct SWP
 {
     float uShadow;
     float uMidtone;
@@ -16,53 +23,74 @@ struct SWP // Scene world properties
     float fogFar;
     float fogMax;
     vec4  fogColor;
-}; uniform SWP swp;
+};
+uniform SWP swp;
 
-layout(std430, binding = 0) readonly buffer CMGL
+struct SHADOW
 {
-    mat4 matWorldToClip;
-    vec4 cameraPos;
-} cm;
-
-layout(std140, binding = 1) uniform RO // Render object properties
-{
-    mat4  model;        //   0 -  63
-    int   rko;          //  64
-    float uAlpha;       //  68
-    float uFog;         //  72
-    float darken;       //  76
-    vec2  uvOffsets;    //  80 -  87
-    int   _pad0;        //  88
-    int   _pad1;        //  92
-    int   warpType;     //  96
-    int   warpCmat;     // 100
-    int   warpCvtx;     // 104
-    int   _padWarp0;    // 108
-	int   _padWarp1;    // 112
-	int   _padWarp2;    // 116
-	int   _padWarp3;    // 120
-	int   _padWarp4;    // 124
-    mat4  amatDpos[4];  // 128 - 383
-    mat4  amatDuv[4];   // 384 - 639
-    int   fDynamic;     // 640
-    float unSelfIllum;  // 644
-    float sRadius;      // 648
-    int   _pad2;        // 652
-    vec4  posCenter;    // 656 - 671
-}op;
+    mat4  matWorldToUv;
+    mat4  matClipToUv;
+    vec4  rgba;
+    float wMin;
+    float wMax;
+    float gReserved;
+    float wFadeMin;
+    uvec2 textureHandle;
+    uvec2 _pad0;
+    vec4  posEffect;
+    float sRadiusEffect;
+    int   fDynamic;
+    int   shdk;
+    int   _pad1;
+    vec4  normalCast;
+};
 
 struct MATERIAL
 {
     float ambient;
-    vec3  midtone;
-    vec3  light;
+    vec4  midtone;
+    vec4  light;
 };
 
-uniform int fAlphaTest;
+layout(std140, binding = 1) uniform RO
+{
+    mat4  model;
+    float uAlpha;
+    float uFog;
+    float darken;
+    int   grfglob;
+    int   pad0;
+    int   warpType;
+    int   warpCmat;
+    int   warpCvtx;
+    mat4  amatDpos[4];
+    mat4  amatDuv[4];
+    int   fDynamic;
+    float sRadius;
+    int   fDynamicLight;
+    int   trlk;
+    vec4  posCenter;
+} op;
 
+layout(std430, binding = 4) readonly buffer SHADOWBLK
+{
+    int numLevelShadows;
+    int padShadowBlk[3];
+    SHADOW shadows[];
+};
+
+uniform int   fAlphaTest;
+uniform float alphaCutOff;
+uniform int   rko;
+
+in vec4 worldPos;
+in vec3 worldNormal;
 in vec4 vertexColor;
 in vec2 texcoord;
+
 in MATERIAL material;
+flat in int vShadowCount;
+flat in int vShadowIndices[MAX_OBJECT_SHADOWS];
 in float fogIntensity;
 
 out vec4 FragColor;
@@ -70,6 +98,8 @@ out vec4 FragColor;
 void AlphaTest();
 void DrawOneWay();
 void DrawThreeWay();
+bool ShadowIntersectsSphere(vec3 objectCenter, float objectRadius, vec3 shadowCenter, float shadowRadius);
+vec3 ApplyProjectedShadow(SHADOW shadow);
 void ApplyFog();
 
 void main()
@@ -79,7 +109,7 @@ void main()
 
     FragColor = vec4(0.0);
 
-    switch (op.rko)
+    switch (rko)
     {
         case RKO_OneWay:
         DrawOneWay();
@@ -90,36 +120,109 @@ void main()
         break;
     }
 
-    if (swp.fogType != 0) 
+    if (swp.fogType != FOG_NONE)
         ApplyFog();
 }
 
 void AlphaTest()
 {
     vec4  diffuse = texture(diffuseMap, texcoord);
-    float alphaIn = clamp(vertexColor.a * diffuse.a, 0.0, 1.0);
+    float alphaIn = diffuse.a * vertexColor.a;
 
-    if (alphaIn < 0.9)
+    if (alphaIn < alphaCutOff)
         discard;
 }
 
 void DrawOneWay()
 {
-    vec4 diffuse = texture(diffuseMap, texcoord);
+    vec4 diffuseTex = texture(diffuseMap, texcoord);
 
-    FragColor.rgb = (vertexColor.rgb * diffuse.rgb) * op.darken;
-    FragColor.a = clamp(vertexColor.a * diffuse.a * op.uAlpha, 0.0, 1.0);
+    FragColor.rgb = (vertexColor.rgb * diffuseTex.rgb) * op.darken;
+
+    float alpha = diffuseTex.a * vertexColor.a;
+
+    if (alpha > 0.9)
+    {
+        for (int i = 0; i < vShadowCount; ++i)
+        {
+            int idx = vShadowIndices[i];
+            FragColor.rgb *= ApplyProjectedShadow(shadows[idx]);
+        }
+    }
+
+    FragColor.a = clamp(alpha * op.uAlpha, 0.0, 1.0);
 }
 
 void DrawThreeWay()
 {
-    vec4 shadow   = texture(shadowMap,   texcoord);
-    vec4 diffuse  = texture(diffuseMap,  texcoord);
-    vec4 saturate = texture(saturateMap, texcoord);
+    vec4 ambientTex  = texture(ambientMap,  texcoord);
+    vec4 diffuseTex  = texture(diffuseMap,  texcoord);
+    vec4 saturateTex = texture(saturateMap, texcoord);
 
-    FragColor.rgb = (shadow.rgb * material.ambient + diffuse.rgb * material.midtone.rgb + saturate.rgb * material.light.rgb) * op.darken;
-    float finalAlpha = clamp(vertexColor.a * diffuse.a, 0.0, 1.0);
-    FragColor.a = clamp(finalAlpha * op.uAlpha, 0.0, 1.0);
+    vec3  lit = ambientTex.rgb * material.ambient + diffuseTex.rgb * material.midtone.rgb + saturateTex.rgb * material.light.rgb;
+    float alpha = clamp(vertexColor.a * diffuseTex.a, 0.0, 1.0);
+
+    if (alpha > 0.9)
+    {
+        for (int i = 0; i < vShadowCount; ++i)
+        {
+            int idx = vShadowIndices[i];
+            lit.rgb *= ApplyProjectedShadow(shadows[idx]);
+        }
+    }
+
+    FragColor.rgb = lit * op.darken;
+    FragColor.a = clamp(alpha * op.uAlpha, 0.0, 1.0);
+}
+
+bool ShadowIntersectsSphere(vec3 objectCenter, float objectRadius, vec3 shadowCenter, float shadowRadius)
+{
+    vec3  d = objectCenter - shadowCenter;
+    float r = objectRadius + shadowRadius;
+
+    return dot(d, d) <= r * r;
+}
+
+vec3 ApplyProjectedShadow(SHADOW shadow)
+{
+    vec4 proj = shadow.matWorldToUv * vec4(worldPos.xyz, 1.0);
+
+    vec4 rgba = clamp(shadow.rgba, 0.0, 1.0);
+
+    float q = proj.w;
+    float depth = proj.w;
+    float oldDepth = depth;
+
+    vec2 uvq = proj.xy;
+
+    if (shadow.wMax < depth)
+    {
+        float dw = shadow.wMax - depth;
+        float duv = dw * 0.5;
+
+        uvq.x += duv;
+        uvq.y += duv;
+        depth += dw;
+    }
+    else if (depth < shadow.wMin)
+    {
+        float dw = shadow.wMin - depth;
+        float duv = dw * 0.5;
+
+        uvq.x += duv;
+        uvq.y += duv;
+        depth += dw;
+
+        if (oldDepth < shadow.wFadeMin)
+            rgba.a = 0.0;
+    }
+
+    vec2 uv = uvq / depth;
+    
+    float mask = texture(sampler2D(shadow.textureHandle), uv).a;
+    float As = mask * rgba.a;
+
+    return (shadow.fDynamic == 1) ? vec3(1.0 - As) : vec3(1.0 + As);
 }
 
 void ApplyFog()

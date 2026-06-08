@@ -31,18 +31,21 @@ void CloneShape(SHAPE* pshape, SHAPE* pshapeBase)
 
 void SetShapeParent(SHAPE* pshape, ALO* paloParent)
 {
-    glm::mat4 matSrc{};
-    glm::mat4 matDst{};
+    glm::mat4 matSrc(1.0f);
+    glm::mat4 matDst(1.0f);
 
-    if (pshape->paloParent == nullptr)
-        matSrc = glm::identity <glm::mat4>();
-    else
-        LoadMatrixFromPosRot(pshape->paloParent->xf.posWorld, pshape->paloParent->xf.matWorld, matSrc);
+    ALO* oldParent = pshape->paloParent;
 
-    if (paloParent == nullptr)
-        matDst = glm::identity <glm::mat4>();
-    else
+    if (oldParent != nullptr)
+        LoadMatrixFromPosRot(oldParent->xf.posWorld, oldParent->xf.matWorld, matSrc);
+
+    if (paloParent != nullptr)
         LoadMatrixFromPosRot(paloParent->xf.posWorld, paloParent->xf.matWorld, matDst);
+
+    CRV *pcrv = pshape->pcrv.get();
+
+    /*if (pcrv != nullptr && pcrv->pvtcrv != nullptr && pcrv->pvtcrvl->pfnConvertCrvl != nullptr)
+        pcrv->pvtcrvl->pfnConvertCrvl((CRVL*)pcrv, &matSrc, &matDst);*/
 
     SetLoParent(pshape, paloParent);
 }
@@ -52,8 +55,7 @@ void LoadShapeFromBrx(SHAPE* pshape, CBinaryInputStream* pbis)
     byte crvk = pbis->U8Read();
 
     pshape->pcrv = PcrvNew((CRVK)crvk);
-
-    pshape->pcrv->pvtcrvl->pfnLoadCrvlFromBrx(std::static_pointer_cast <CRVL> (pshape->pcrv), pbis);
+    pshape->pcrv->pvtcrvl->pfnLoadCrvlFromBrx((CRVL*)pshape->pcrv.get(), pbis);
 
     LoadOptionsFromBrx(pshape, pbis);
 }

@@ -44,14 +44,17 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
             pglobset->aglob[i].uFog = 1.0;
             pglobset->aglob[i].rSubglobRadius = 1.0;
             pglobset->aglob[i].fDynamic = fRelight;
+            pglobset->aglob[i].fTransluscentSort = 0;
             pglobset->aglobi[i].uAlpha = 1.0;
         }
         else
         {
             fInstanceGlob = globPropertys & 1;
-
             instanceIndex = pbis->S16Read();
 
+            pglobset->aglob[i].VAO = pglobset->aglob[instanceIndex].VAO;
+            pglobset->aglob[i].VBO = pglobset->aglob[instanceIndex].VBO;
+            pglobset->aglob[i].EBO = pglobset->aglob[instanceIndex].EBO;
             pglobset->aglob[i].posCenter = pglobset->aglob[instanceIndex].posCenter;
             pglobset->aglob[i].sRadius = pglobset->aglob[instanceIndex].sRadius;
             pglobset->aglob[i].rp = pglobset->aglob[instanceIndex].rp;
@@ -60,6 +63,10 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
             pglobset->aglob[i].gZOrder = pglobset->aglob[instanceIndex].gZOrder;
             pglobset->aglob[i].uFog = pglobset->aglob[instanceIndex].uFog;
             pglobset->aglob[i].fDynamic = pglobset->aglob[instanceIndex].fDynamic;
+            pglobset->aglob[i].fTransluscentSort = pglobset->aglob[instanceIndex].fTransluscentSort;
+            pglobset->aglob[i].fThreeWay = pglobset->aglob[instanceIndex].fThreeWay;
+            pglobset->aglob[i].trlk = pglobset->aglob[instanceIndex].trlk;
+            pglobset->aglob[i].grfshd = pglobset->aglob[instanceIndex].grfshd;
             pglobset->aglobi[i] = pglobset->aglobi[instanceIndex];
 
             glm::mat4 instanceModelMatrix = pbis->ReadMatrix4();
@@ -70,8 +77,6 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
 
         if ((globPropertys & 2) != 0)
             pglobset->aglobi[i].grfzon = pbis->U32Read();
-        else
-            pglobset->aglobi[i].grfzon = -1;
 
         if ((globPropertys & 0x200) != 0)
             pglobset->aglob[i].rSubglobRadius = pbis->F32Read();
@@ -137,7 +142,7 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
             wrbg.oid = (OID)pbis->S16Read();
             wrbg.weki.wek = (WEK)pbis->S8Read();
 
-            if (wrbg.weki.wek != WEK_Nil) 
+            if (wrbg.weki.wek != WEK_Nil)
             {
                 wrbg.weki.sInner = pbis->F32Read();
                 wrbg.weki.uInner = pbis->F32Read();
@@ -159,8 +164,8 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                 wrbg.warpType = WARP_BOTH;
 
             pglobset->aglob[i].pwrbg = wrbgPtr;
-            wrbg.pwrbgNextGlobset = pglobset->pwrbgFirst;
-            pglobset->pwrbgFirst = wrbgPtr;
+            wrbg.pwrbgNextGlobset    = pglobset->pwrbgFirst;
+            pglobset->pwrbgFirst     = wrbgPtr;
         }
 
         pglobset->aglob[i].posCenter = pbis->ReadVector();
@@ -169,14 +174,14 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
         pglobset->aglob[i].rtck      = (RTCK)pbis->U8Read();
         pglobset->aglob[i].rp        = (RP)pbis->U8Read();
         pglobset->aglob[i].grfglob   = pbis->U8Read();
-      
+
         if (fInstanceGlob == 0)
         {
+            int fProjVolume = 0;
             // Number of submodels
             // std::cout << "Model Start: " << std::hex << file.tellg()<<"\n";
             pglobset->aglob[i].csubglob = pbis->U16Read();
             pglobset->aglob[i].asubglob.resize(pglobset->aglob[i].csubglob);
-            numRo += pglobset->aglob[i].csubglob;
 
             for (int a = 0; a < pglobset->aglob[i].csubglob; a++)
             {
@@ -241,10 +246,37 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                     indexes[f].iuv     = pbis->U8Read();
                     indexes[f].bMisc   = pbis->U8Read();
                 }
-                
+
                 // Loading texture property 
                 pglobset->aglob[i].asubglob[a].shdID = pbis->U16Read();
-                pglobset->aglob[i].asubglob[a].pshd = &g_ashd[pglobset->aglob[i].asubglob[a].shdID];
+                pglobset->aglob[i].asubglob[a].pshd  = &g_ashd[pglobset->aglob[i].asubglob[a].shdID];
+
+                auto& glob = pglobset->aglob[i];
+                auto* shd  = glob.asubglob[a].pshd;
+
+                if (!glob.fTransluscentSort && shd)
+                {
+                    const uint32_t g = (uint32_t)shd->grfshd;
+
+                    if (g == 2)
+                    {
+                        if (glob.rp == RP_Background ||
+                            glob.rp == RP_Cutout ||
+                            glob.rp == RP_CutoutAfterProjVolume ||
+                            glob.rp == RP_Translucent)
+                        {
+                            glob.fTransluscentSort = 1;
+                        }
+                    }
+                    else if (g == 6)
+                    {
+                        if (glob.rp == RP_Translucent)
+                            glob.fTransluscentSort = 1;
+                    }
+                }
+
+                if (glob.rp == RP_ProjVolume)
+                    glob.grfshd = glob.asubglob[a].pshd->grfshd;
 
                 pglobset->aglob[i].asubglob[a].unSelfIllum = static_cast<uint16_t>((pbis->U8Read() * 0x7FA6) / 0xFF);
 
@@ -293,13 +325,131 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                     }
                 }
 
-                BuildSubGlob(&pglobset->aglob[i], &pglobset->aglob[i].asubglob[a], pglobset->aglob[i].asubglob[a].pshd, vertexes, normals, vertexColors, texcoords, indexes, &subposef, posfPose, normalfPose, agWeights);
-                SetRpCount(pglobset->aglob[i].rp, pglobset->aglob[i].asubglob[a].pshd->grfshd);
+                BuildSubGlob(&pglobset->aglob[i], &pglobset->aglob[i].asubglob[a], pglobset->aglob[i].asubglob[a].pshd, vertexes, normals, vertexColors, texcoords, indexes, &subposef, posfPose, normalfPose, agWeights, pglobset->aglob[i].fDynamic);
+            }
+
+            if (pglobset->aglob[i].asubglob.size() > 0)
+            {
+                auto& glob = pglobset->aglob[i];
+
+                // 1) Count totals
+                size_t totalVerts = 0;
+                size_t totalIndices = 0; // flattened (tri*3)
+
+                for (auto& s : glob.asubglob)
+                {
+                    totalVerts   += s.vertices.size();
+                    totalIndices += s.indices.size() * 3;
+                }
+
+                // 2) Allocate final CPU arrays once (no insert() / no reallocation)
+                std::vector <VERTICE>  packedVerts(totalVerts);
+                std::vector <uint32_t> packedIdx(totalIndices);
+
+                VERTICE*  vptr = packedVerts.data();
+                uint32_t* iptr = packedIdx.data();
+
+                uint32_t vOffset = 0;
+                uint32_t iOffset = 0;
+
+                // 3) Pack each subglob into the big arrays + record slice offsets
+                for (auto& s : glob.asubglob)
+                {
+                    s.baseVertex = (int32_t)vOffset;
+                    s.firstIndex = (uint32_t)iOffset;
+                    s.indexCount = (uint32_t)(s.indices.size() * 3);
+
+                    // Copy vertices
+                    if (!s.vertices.empty())
+                    {
+                        memcpy(vptr, s.vertices.data(), s.vertices.size() * sizeof(VERTICE));
+                        vptr += s.vertices.size();
+                        vOffset += (uint32_t)s.vertices.size();
+                    }
+
+                    for (auto& tri : s.indices)
+                    {
+                        iptr[0] = (uint32_t)tri.v1;
+                        iptr[1] = (uint32_t)tri.v2;
+                        iptr[2] = (uint32_t)tri.v3;
+                        iptr += 3;
+                    }
+
+                    iOffset += (uint32_t)(s.indices.size() * 3);
+                }
+
+                // 4) Create ONE VAO/VBO/EBO for the glob and upload once
+                glGenVertexArrays(1, &glob.VAO);
+                glBindVertexArray(glob.VAO);
+
+                glGenBuffers(1, &glob.VBO);
+                glBindBuffer(GL_ARRAY_BUFFER, glob.VBO);
+                glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(packedVerts.size() * sizeof(VERTICE)), packedVerts.data(), GL_STATIC_DRAW);
+
+                glGenBuffers(1, &glob.EBO);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glob.EBO);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)(packedIdx.size() * sizeof(uint32_t)), packedIdx.data(), GL_STATIC_DRAW);
+
+                // 5) Vertex attributes ONCE (your exact layout)
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, pos));
+                glEnableVertexAttribArray(0);
+
+                glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, normal));
+                glEnableVertexAttribArray(1);
+
+                glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, color));
+                glEnableVertexAttribArray(2);
+
+                glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, uv));
+                glEnableVertexAttribArray(3);
+
+                glVertexAttribIPointer(4, 4, GL_UNSIGNED_INT, sizeof(VERTICE), (void*)offsetof(VERTICE, boneIndices));
+                glEnableVertexAttribArray(4);
+
+                glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, boneWeights));
+                glEnableVertexAttribArray(5);
+
+                glBindVertexArray(0);
+
+                if (glob.pwrbg && glob.pwrbg->cmat > 0)
+                {
+                    if (!glob.pwarpGlob)
+                        glob.pwarpGlob = std::make_shared<WRBGLOB_GL>();
+
+                    WRBGLOB_GL& w = *glob.pwarpGlob;
+
+                    w.vertexCount = (int)packedVerts.size();
+                    w.basePos.resize((size_t)w.vertexCount);
+
+                    for (int v = 0; v < w.vertexCount; ++v)
+                        w.basePos[v] = glm::vec4(packedVerts[v].pos, 1.0f);
+
+                    // don't allocate state yet here (because WR->cmat isn’t known until ApplyWrGlob)
+                    // but you CAN create the SSBO name now:
+                    if (w.ssboState == 0)
+                        glGenBuffers(1, &w.ssboState);
+                }
+
+                if (glob.fThreeWay == 1 && glob.fDynamic == 0)
+                {
+                    if (glob.pwarpGlob == nullptr)
+                    {
+                        glob.trlk = TRLK_Relight;
+
+                        glGenBuffers(1, &glob.ssboCachedMaterial);
+                        glBindBuffer(GL_SHADER_STORAGE_BUFFER, glob.ssboCachedMaterial);
+                        glBufferData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)(totalVerts * sizeof(MATERIAL)), nullptr, GL_STATIC_DRAW);
+                        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+                    }
+                }
+
+                SetRpCount(&pglobset->aglob[i], pglobset->aglob[i].fTransluscentSort);
+                numRo++;
             }
 
             pglobset->aglob[i].csubcel = pbis->U16Read();
             pglobset->aglob[i].asubcel.resize(pglobset->aglob[i].csubcel);
-            numRoCel += pglobset->aglob[i].csubcel;
+            std::vector <glm::vec4> mergedEdges;
 
             for (int k = 0; k < pglobset->aglob[i].csubcel; k++)
             {
@@ -364,9 +514,19 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
                     }
                 }
 
-                BuildSubcel(pglobset, &subcel, aposfCount, aposf, ctwef, atwef, subposef, aposfPoses, weightsCel);
+                BuildSubcel(pglobset, &pglobset->aglob[i], &subcel, aposfCount, aposf, ctwef, atwef, subposef, aposfPoses, weightsCel, mergedEdges);
                 pglobset->aglob[i].asubcel[k] = subcel;
-                SetRpCount(pglobset->aglob[i].rp, 0);
+            }
+
+            if (pglobset->aglob[i].edgeCount > 0)
+            {
+                glGenBuffers(1, &pglobset->aglob[i].edgeSSBO);
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, pglobset->aglob[i].edgeSSBO);
+                glBufferData(GL_SHADER_STORAGE_BUFFER, mergedEdges.size() * sizeof(glm::vec4), mergedEdges.data(), GL_STATIC_DRAW);
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+                SetRpCount(&pglobset->aglob[i], 0);
+                numRoCel++;
             }
         }
         else
@@ -377,21 +537,63 @@ void LoadGlobsetFromBrx(GLOBSET* pglobset, ALO* palo, CBinaryInputStream* pbis)
             pglobset->aglob[i].csubcel = pglobset->aglob[instanceIndex].csubcel;
             pglobset->aglob[i].asubcel = pglobset->aglob[instanceIndex].asubcel;
 
-            numRo += pglobset->aglob[i].csubglob;
-            for (int a = 0; a < pglobset->aglob[i].csubglob; a++)
-                SetRpCount(pglobset->aglob[i].rp, pglobset->aglob[i].asubglob[a].pshd->grfshd);
+            if (pglobset->aglob[i].fThreeWay == 1 && pglobset->aglob[i].fDynamic == 0)
+            {
+                uint32_t totalVerts = 0;
+                for (int a = 0; a < pglobset->aglob[i].csubglob; a++)
+                    totalVerts += pglobset->aglob[i].asubglob[a].vertices.size();
 
-            numRoCel += pglobset->aglob[i].csubcel;
-            for (int a = 0; a < pglobset->aglob[i].csubcel; a++)
-                SetRpCount(pglobset->aglob[i].rp, 0);
+                glGenBuffers(1, &pglobset->aglob[i].ssboCachedMaterial);
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, pglobset->aglob[i].ssboCachedMaterial);
+                glBufferData(GL_SHADER_STORAGE_BUFFER, totalVerts * sizeof(MATERIAL), nullptr, GL_STATIC_DRAW);
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+            }
+
+            // after you've copied VAO/VBO/EBO/etc from instanceIndex:
+            GLOB& inst = pglobset->aglob[i];
+            GLOB& base = pglobset->aglob[instanceIndex];
+
+            if (inst.pwrbg && inst.pwrbg->cmat > 0)
+            {
+                // base must have built warp basePos already (it was non-instanced and packed)
+                if (!inst.pwarpGlob)
+                    inst.pwarpGlob = std::make_shared <WRBGLOB_GL>();
+
+                WRBGLOB_GL& wInst = *inst.pwarpGlob;
+                WRBGLOB_GL& wBase = *base.pwarpGlob;
+
+                // share geometry-side data
+                wInst.vertexCount = wBase.vertexCount;
+                wInst.basePos = wBase.basePos;     // shares the vector (copy) — see note below
+                // If you want true sharing without copy, store basePos in a shared_ptr (see Option C)
+
+                // unique SSBO for this instance's state
+                if (wInst.ssboState == 0)
+                    glGenBuffers(1, &wInst.ssboState);
+            }
+
+            if (pglobset->aglob[i].asubglob.size() > 0)
+            {
+                SetRpCount(&pglobset->aglob[i], pglobset->aglob[i].fTransluscentSort);
+                numRo++;
+            }
+
+            if (pglobset->aglob[i].edgeCount > 0)
+            {
+                SetRpCount(&pglobset->aglob[i], 0);
+                numRoCel++;
+            }
         }
     }
 
     BuildGlobsetSaaArray(pglobset);
 }
 
-void BuildSubGlob(GLOB *pglob, SUBGLOB *psubglob, SHD *pshd, std::vector <glm::vec3> &positions, std::vector <glm::vec3> &normals, std::vector <glm::vec4> &colors, std::vector <glm::vec2> &texcoords, std::vector <VTXFLG> &indexes, SUBPOSEF *subposef, std::vector <glm::vec3> &aposfPoses, std::vector <glm::vec3> &anormalfPoses, std::vector <float> &agWeights)
+void BuildSubGlob(GLOB* pglob, SUBGLOB* psubglob, SHD* pshd, std::vector <glm::vec3>& positions, std::vector <glm::vec3>& normals, std::vector <glm::vec4>& colors, std::vector <glm::vec2>& texcoords, std::vector <VTXFLG>& indexes, SUBPOSEF* subposef, std::vector <glm::vec3>& aposfPoses, std::vector <glm::vec3>& anormalfPoses, std::vector <float>& agWeights, int fDynamic)
 {
+    if (pshd->shdk == SHDK_ThreeWay)
+        pglob->fThreeWay = 1;
+
     psubglob->vertices.resize(indexes.size());
 
     for (int i = 0; i < indexes.size(); i++)
@@ -403,13 +605,23 @@ void BuildSubGlob(GLOB *pglob, SUBGLOB *psubglob, SHD *pshd, std::vector <glm::v
         else
             psubglob->vertices[i].normal = normals[indexes[i].inormal];
 
-        if ((indexes[i].bMisc & 0x7F) == 0x7F)
-            psubglob->vertices[i].color = pshd->rgba;
+        if (pshd->shdk == SHDK_ProjectedVolume)
+        {
+            if ((indexes[i].bMisc & 0x7F) == 0x7F)
+                psubglob->vertices[i].color = pshd->rgbaVolume;
+            else
+                psubglob->vertices[i].color = colors[indexes[i].bMisc & 0x7F] * pshd->rgbaVolume;
+        }
         else
-            psubglob->vertices[i].color = colors[indexes[i].bMisc & 0x7F] * pshd->rgba;
+        {
+            if ((indexes[i].bMisc & 0x7F) == 0x7F)
+                psubglob->vertices[i].color = pshd->rgba;
+            else
+                psubglob->vertices[i].color = colors[indexes[i].bMisc & 0x7F] * pshd->rgba;
+        }
 
         if (indexes[i].iuv == 0xFF)
-            psubglob->vertices[i].uv = glm::vec2{0.0};
+            psubglob->vertices[i].uv = glm::vec2{ 0.0 };
         else
             psubglob->vertices[i].uv = texcoords[indexes[i].iuv];
     }
@@ -455,7 +667,7 @@ void BuildSubGlob(GLOB *pglob, SUBGLOB *psubglob, SHD *pshd, std::vector <glm::v
         {
             if (i % 2 == 0)
             {
-                INDICE indice;
+                INDICE indice{};
 
                 indice.v1 = idx + 0;
                 indice.v2 = idx + 1;
@@ -465,7 +677,7 @@ void BuildSubGlob(GLOB *pglob, SUBGLOB *psubglob, SHD *pshd, std::vector <glm::v
             }
             else
             {
-                INDICE indice;
+                INDICE indice{};
 
                 indice.v1 = idx + 0;
                 indice.v2 = idx + 2;
@@ -477,43 +689,6 @@ void BuildSubGlob(GLOB *pglob, SUBGLOB *psubglob, SHD *pshd, std::vector <glm::v
 
         idx++;
     }
-
-    psubglob->cvtx = psubglob->indices.size() * sizeof(INDICE);
-
-    glGenVertexArrays(1, &psubglob->VAO);
-    glBindVertexArray(psubglob->VAO);
-
-    glGenBuffers(1, &psubglob->VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, psubglob->VBO);
-    glBufferData(GL_ARRAY_BUFFER, psubglob->vertices.size() * sizeof(VERTICE), psubglob->vertices.data(), GL_STATIC_DRAW);
-
-    glGenBuffers(1, &psubglob->EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, psubglob->EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, psubglob->cvtx, psubglob->indices.data(), GL_STATIC_DRAW);
-
-    // Vertex Position's 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, pos));
-    glEnableVertexAttribArray(0);
-
-    // Normal's
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, normal));
-    glEnableVertexAttribArray(1);
-
-    // Vertex Color's
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, color));
-    glEnableVertexAttribArray(2);
-
-    // Uv's
-    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, uv));
-    glEnableVertexAttribArray(3);
-
-    // Bone Indice's
-    glVertexAttribIPointer(4, 4, GL_UNSIGNED_INT, sizeof(VERTICE), (void*)offsetof(VERTICE, boneIndices));
-    glEnableVertexAttribArray(4);
-
-    // Bone Weight's
-    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(VERTICE), (void*)offsetof(VERTICE, boneWeights));
-    glEnableVertexAttribArray(5);
 
     SAI* uvSai = nullptr;
     bool usesUvAnim = false;
@@ -528,49 +703,17 @@ void BuildSubGlob(GLOB *pglob, SUBGLOB *psubglob, SHD *pshd, std::vector <glm::v
 
     psubglob->uvSai = sai;
     psubglob->usesUvAnim = (sai && (sai->grfsai & 0x2));
-
-    //WRBG
-    if (pglob->pwrbg && pglob->pwrbg->cmat > 0)
-    {
-        if (!psubglob->pwarp)
-            psubglob->pwarp = std::make_shared<WRBSG_GL>();
-
-        WRBSG_GL& w = *psubglob->pwarp;
-
-        const int vertexCount = (int)psubglob->vertices.size();
-        w.vertexCount = vertexCount;
-
-        // NOTE: This might get overridden later by ApplyWrGlob using WR::cmat
-        w.cmat = pglob->pwrbg->cmat;
-
-        // Base positions in render-vertex order (PS2 pposad equivalent)
-        w.basePos.resize((size_t)vertexCount);
-
-        for (int v = 0; v < vertexCount; ++v)
-            w.basePos[v] = glm::vec4(psubglob->vertices[v].pos, 1.0f);
-
-        // Allocate CPU state
-        w.state.assign((size_t)w.cmat * (size_t)vertexCount, glm::vec4(0.0f));
-
-        // Create SSBO
-        if (w.ssboState == 0)
-            glGenBuffers(1, &w.ssboState);
-
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, w.ssboState);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, w.state.size() * sizeof(glm::vec4), nullptr, GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-    }
 }
 
-void BuildSubcel(GLOBSET *pglobset, SUBCEL *psubcel, int cposf, std::vector <glm::vec3> &aposf, int ctwef, std::vector <TWEF> &atwef, std::vector <SUBPOSEF> &asubposef, std::vector <glm::vec3> &aposfPoses, std::vector <float> &agWeights)
+void BuildSubcel(GLOBSET *pglobset, GLOB *pglob, SUBCEL *psubcel, int cposf, std::vector <glm::vec3> &aposf, int ctwef, std::vector <TWEF>& atwef, std::vector <SUBPOSEF>& asubposef, std::vector <glm::vec3>& aposfPoses, std::vector <float>& agWeights, std::vector <glm::vec4>& totalEdges)
 {
-    psubcel->positions = aposf;
-    psubcel->edgeCount = static_cast<GLsizei>(ctwef);
+    // Keep only what you still need:
+    pglob->edgeCount += ctwef;
 
-    std::vector<glm::vec4> edgeData;
-    edgeData.reserve(psubcel->edgeCount * 4);
+    // Reserve extra space in the merged buffer (4 vec4 per edge)
+    totalEdges.reserve(totalEdges.size() + (size_t)ctwef * 4);
 
-    auto getP = [&](uint32_t idx)->const glm::vec3& { return psubcel->positions[idx]; };
+    auto getP = [&](uint32_t idx) -> const glm::vec3& {return aposf[idx];};
 
     for (int i = 0; i < ctwef; ++i)
     {
@@ -584,30 +727,24 @@ void BuildSubcel(GLOBSET *pglobset, SUBCEL *psubcel, int cposf, std::vector <glm
         const glm::vec3 OA = getP(iOppA);
         const glm::vec3 OB = getP(iOppB);
 
-        edgeData.emplace_back(E0, 1.0f);
-        edgeData.emplace_back(E1, 1.0f);
-        edgeData.emplace_back(OA, 1.0f);
-        edgeData.emplace_back(OB, 1.0f);
+        // same layout as before, but appended to the merged buffer
+        totalEdges.emplace_back(E0, 1.0f);
+        totalEdges.emplace_back(E1, 1.0f);
+        totalEdges.emplace_back(OA, 1.0f);
+        totalEdges.emplace_back(OB, 1.0f);
     }
-
-    glGenBuffers(1, &psubcel->edgeSSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, psubcel->edgeSSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, edgeData.size() * sizeof(glm::vec4), edgeData.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 void BuildGlobsetSaaArray(GLOBSET* pglobset)
 {
     pglobset->apsaa.resize(pglobset->cpsaa);
 
-    int outCount = 0;
-
-    for (int i = 0; i < pglobset->cglob; ++i)
+    for (int i = 0, saaIndex = 0; i < pglobset->cglob; i++)
     {
-        SAA* saa = pglobset->aglob[i].psaa;
+        SAA* psaa = pglobset->aglob[i].psaa;
 
-        if (saa != NULL)
-            pglobset->apsaa[outCount++] = saa;
+        if (psaa != nullptr)
+            pglobset->apsaa[saaIndex++] = psaa;
     }
 }
 
@@ -618,13 +755,12 @@ void PostGlobsetLoad(GLOBSET* pglobset, ALO* palo)
         GLOB* glob = &pglobset->aglob[i];
 
         // If this glob has an SAA, call its post-load hook.
-        SAA* saa = glob->psaa;
-
-        if (saa != NULL)
+        SAA *saa = glob->psaa;
+        
+        if (saa != nullptr)
             saa->pvtsaa->pfnPostSaaLoad(saa);
     }
 
-    // Now warp postload:
     for (WRBG* wrbg = pglobset->pwrbgFirst.get(); wrbg; wrbg = wrbg->pwrbgNextGlobset.get())
     {
         WR* pwr = (WR*)PloFindSwObject(palo->psw, 0x104, wrbg->oid, palo);
@@ -636,8 +772,6 @@ void PostGlobsetLoad(GLOBSET* pglobset, ALO* palo)
 
 void UpdateGlobset(GLOBSET* pglobset, ALO* palo, float dt)
 {
-    int oid = palo->oid; 1925;
-    
     for (int i = 0; i < pglobset->apsaa.size(); i++)
     {
         SAA* saa = pglobset->apsaa[i];
@@ -658,7 +792,7 @@ void UpdateGlobset(GLOBSET* pglobset, ALO* palo, float dt)
     for (WRBG* wrbg = pglobset->pwrbgFirst.get(); wrbg != nullptr; wrbg = wrbg->pwrbgNextGlobset.get())
     {
         WR* pwr = wrbg->pwr;
-        
+
         if (!pwr) continue;
 
         UpdateWrMatrixes(pwr);
@@ -671,6 +805,6 @@ bool g_fRenderCollision = false;
 bool g_fRenderCelBorders = true;
 bool g_fBsp = false;
 float g_uAlpha = 1.0;
-SMP s_smpFade = {2.0, 0.0, 0.1};
-SMP g_smpAlphaFade = {2.0, 0.0, 0.1};
+SMP s_smpFade = { 2.0, 0.0, 0.1 };
+SMP g_smpAlphaFade = { 2.0, 0.0, 0.1 };
 glm::vec4 g_rgbaCel = glm::vec4(16.0f / 255.0f, 16.0f / 255.0f, 16.0f / 255.0f, 1.0);

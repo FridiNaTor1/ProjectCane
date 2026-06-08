@@ -1,10 +1,10 @@
 #pragma once
 #include "alo.h"
 
-#define MAX_LIGHTS 255
+#define MAX_LIGHTS 256
 
 // Light type
-enum LIGHTK 
+enum LIGHTK
 {
 	LIGHTK_Nil = -1,
 	LIGHTK_Direction = 0,
@@ -27,17 +27,23 @@ struct LTFN
 	float duUnused;
 };
 
+struct alignas(16) LightSSBOHeader
+{
+	int numLights;
+	int pad[3];
+};
+
 struct LIGHTBLK
 {
 	int  lightk;
 	int  pad1;
 	int  pad2;
-	int  pad3;
+	int  fDynamic;
 	glm::vec4 pos;
 	glm::vec4 dir;
 	glm::vec4 color;
 	float constant;
-	float invDistance;
+	float invDst;
 	float pad4;
 	float dst;
 	glm::vec4 ru;
@@ -49,8 +55,10 @@ struct LIGHTBLK
 
 struct ACTIVELIGHTS
 {
-	int numLights;
-	int lightIndices[MAX_LIGHTS];
+	int numStaticLights;
+	int staticLightIndices[MAX_LIGHTS];
+	int numDynamicLights;
+	int dynamicLightIndices[MAX_LIGHTS];
 };
 
 class LIGHT : public ALO
@@ -86,12 +94,12 @@ class LIGHT : public ALO
 	LM lmFallOffAbsX;
 	LM lmFallOffAbsY;
 	glm::vec4 avecFrustrum[6];
-	int grfzonBeam;
+	GRFZON grfzonBeam;
 	glm::mat4 matLookAt;
 	DLE dleLight;
 };
 
-LIGHT*NewLight();
+LIGHT* NewLight();
 void InitSwLightDl(SW* psw);
 void InitLight(LIGHT* plight);
 int  GetLightSize();
@@ -99,17 +107,18 @@ void OnLightAdd(LIGHT* plight);
 void OnLightRemove(LIGHT* plight);
 void RebuildLightFrustrum(LIGHT* plight);
 void UpdateLightXfWorldHierarchy(LIGHT* plight);
+void UpdateLightBeamGrfzon(LIGHT* plight);
 void CloneLight(LIGHT* plight, LIGHT* plightBase);
 void AddLightToSw(LIGHT* plight);
-void FitLinearFunction(float x0, float y0, float x1, float y1, float &pdu, float &pru);
+void FitLinearFunction(float x0, float y0, float x1, float y1, float& pdu, float& pru);
 void FitRecipFunction(float x0, float y0, float x1, float y1, float* pdu, float* pru);
 void ConvertFallOff(LM* plm, float* pdu, float* pru);
-void ConvertAngleStrength(float deg0, float g0, float deg1, float g1, float &pdu, float &pru);
+void ConvertAngleStrength(float deg0, float g0, float deg1, float g1, float& pdu, float& pru);
 void RebuildLight(LIGHT* plight);
 void*GetLightKind(LIGHT* plight);
 void SetLightKind(LIGHT* plight, LIGHTK lightk);
 void*GetLightHighlightColor(LIGHT* plight);
-void SetLightHighlightColor(LIGHT* plight, glm::vec3 &pvecHighlight);
+void SetLightHighlightColor(LIGHT* plight, glm::vec3& pvecHighlight);
 void*GetLightMidtoneStrength(LIGHT* plight);
 void SetLightMidtoneStrength(LIGHT* plight, float gMidtone);
 void*GetLightShadowStrength(LIGHT* plight);
@@ -121,7 +130,7 @@ void SetLightMidtoneAngle(LIGHT* plight, float degMidtone);
 void*GetLightShadowAngle(LIGHT* plight);
 void SetLightShadowAngle(LIGHT* plight, float degShadow);
 void*GetLightDirection(LIGHT* plight);
-void SetLightDirection(LIGHT* plight, glm::vec3 &pvecDirection);
+void SetLightDirection(LIGHT* plight, glm::vec3& pvecDirection);
 void*GetLightDynamic(LIGHT* plight);
 void SetLightDynamic(LIGHT* plight, int fDynamic);
 void*GetLightFallOff(LIGHT* plight);
@@ -130,24 +139,23 @@ void*GetLightConeAngle(LIGHT* plight);
 void SetLightConeAngle(LIGHT* plight, float degCone);
 void*GetLightHotSpotAngle(LIGHT* plight);
 void SetLightHotSpotAngle(LIGHT* plight, float degHotSpot);
-void*GetLightFrustrumUp(LIGHT*plight);
-void SetLightFrustrumUp(LIGHT* plight, glm::vec3 &pvecUpLocal);
+void*GetLightFrustrumUp(LIGHT* plight);
+void SetLightFrustrumUp(LIGHT* plight, glm::vec3& pvecUpLocal);
 void RemoveLightFromSw(LIGHT* plight);
 void CreateSwDefaultLights(SW* psw);
 void AllocateLightBlkList();
+bool FindSwDynamicLights(glm::vec3* pposCenter, float sRadius);
 void PrepareSwLights(SW* psw, CM* pcm);
-// Doing lights per object
-void FindSwLights(SW* psw, CM* pcm, glm::vec3 posCenter, float sRadius);
 void DeallocateLightBlkList();
-void DeleteLight(LIGHT *plight);
+void DeleteLight(LIGHT* plight);
 void DeallocateLightVector();
 
 extern std::vector<LIGHT*> allSwLights;
+extern std::vector<LIGHT*> allSwDynamicLights;
 extern ACTIVELIGHTS activeLights;
-extern std::vector <int> dynamicLightsIndices;
 extern GLuint g_lightSsbo;
-extern int numRl;
-extern int cLights;
+extern GLuint g_activeLightsSsbo;
+extern int numSwLights;
 extern std::vector <LIGHTBLK> lightBlk;
 
 extern glm::vec3 g_vecHighlight;

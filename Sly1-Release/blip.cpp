@@ -21,7 +21,8 @@ void InitBlipg(BLIPG* pblipg)
     InitAlo(pblipg);
     InitDl(&pblipg->dlBlip, offsetof(BLIP, dle));
     pblipg->sMRD = 1e+10;
-    *(unsigned long*)&pblipg->bitfield = *(unsigned long*)&pblipg->bitfield & 0xffffffffcfffffff | 0x10020000000;
+    pblipg->mrds = 2;
+    pblipg->fNoFreeze = 1;
 }
 
 int GetBlipgSize()
@@ -78,6 +79,33 @@ void SetBlipgShader(BLIPG *pblipg, OID oid)
     //PropagateBlipgShader(pblipg);
 }
 
+BLIP* PblipNew(BLIPG* pblipg)
+{
+    return nullptr;
+}
+
+BLIPG* PblipgNew(SW* psw)
+{
+    BLIPG *pblipg = psw->dlBlipgFree.pblipgFirst;
+
+    if (pblipg != NULL)
+    {
+        pblipg->pemitter = NULL;
+        pblipg->sMRD = 1.0e10f;
+
+        pblipg->viss = 2;
+        pblipg->mrds = 2;
+
+        pblipg->cblipe = 0;
+
+        pblipg->pvtlo->pfnAddLo(pblipg);
+
+        pblipg->pchzName = (char*)"BLIP Group";
+    }
+
+    return pblipg;
+}
+
 void UpdateBlipg(BLIPG* pblipg, float dt)
 {
     UpdateAlo(pblipg, dt);
@@ -89,6 +117,25 @@ void UpdateBlipg(BLIPG* pblipg, float dt)
 
     if (!inCameraZone)
         pblipg->pvtlo->pfnRemoveLo(pblipg);
+}
+
+void SubscribeBlipgObject(BLIPG* pblipg, EMITTER* ploTarget)
+{
+    SubscribeLoObject(pblipg, ploTarget);
+
+    if (FIsBasicDerivedFrom((BASIC*)ploTarget, CID_EMITTER))
+    {
+        EMITTER *pemitter = (EMITTER*)ploTarget;
+
+        pblipg->pemitter = pemitter;
+        pblipg->sMRD = pemitter->sMRD;
+
+        if (!FIsDlEmpty(&pemitter->dlGroup))
+        {
+            pblipg->viss = 0;
+            pblipg->mrds = 0;
+        }
+    }
 }
 
 void RenderBlipgSelf(BLIPG* pblipg, CM* pcm, RO* pro)

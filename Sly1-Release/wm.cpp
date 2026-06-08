@@ -45,7 +45,7 @@ void BindWm(WM* pwm)
 void PostWmLoad(WM* pwm)
 {
     PostAloLoad(pwm);
-    *(unsigned long*)&pwm->bitfield = *(unsigned long*)&pwm->bitfield | 0x10000000000;
+    pwm->fNoFreeze = 1;
     g_wmc.pwm = pwm;
 }
 

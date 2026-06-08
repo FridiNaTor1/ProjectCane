@@ -8,6 +8,7 @@ JT* NewJt()
 void InitJt(JT* pjt)
 {
 	InitStep(pjt);
+
 	pjt->jts = JTS_Nil;
 	pjt->jtcs = JTCS_Nil;
 	pjt->jtbs = JTBS_Nil;
@@ -15,8 +16,10 @@ void InitJt(JT* pjt)
 }
 
 void LoadJtFromBrx(JT* pjt, CBinaryInputStream* pbis)
-{
+{ 
 	LoadSoFromBrx(pjt, pbis);
+    SnipAloObjects(pjt, 1, s_asnipLoad);
+
 	pjt->tSweepPending = -1.0;
 	pjt->tJumpPending = -1.0;
 	g_pjt = pjt;
@@ -183,6 +186,15 @@ void CloneJt(JT* pjt, JT* pjtBase)
 void PostJtLoad(JT* pjt)
 {
     PostStepLoad(pjt);
+
+    if (pjt->paloShadow != nullptr)
+    {
+        pjt->paloShadow->pvtlo->pfnAddLo(pjt->paloShadow);
+        SetDyshShadow((DYSH*)pjt->paloShadow, pjt->pshadow.get());
+    }
+
+    pjt->mrds = 0;
+    pjt->dms = 0;
 }
 
 void UpdateJt(JT* pjt, float dt)
@@ -209,3 +221,8 @@ void DeleteJt(JT* pjt)
 {
 	delete pjt;
 }
+
+SNIP s_asnipLoad[1] =
+{
+    2, (OID)370, offsetof(JT, paloShadow)
+};

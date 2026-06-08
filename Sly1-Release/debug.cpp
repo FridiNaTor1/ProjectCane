@@ -1,6 +1,7 @@
 #include "debug.h"
 #define  STB_IMAGE_WRITE_IMPLEMENTATION 
 #include <stb/stb_image_write.h>
+#include "render.h"
 
 void RenderMenuGui(SW* psw)
 {
@@ -88,8 +89,76 @@ void RenderMenuGui(SW* psw)
                 if (ImGui::IsItemHovered()) g_fDisableInput = true;
             }
 
+            if (ImGui::BeginMenu("MSAA"))
+            {
+                if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
+                // We'll rebuild only if something changes
+                bool changed = false;
+
+                // Enable/disable
+                bool enabled = g_fMsaa;
+                if (ImGui::MenuItem("Off", nullptr, !enabled))
+                {
+                    g_fMsaa = false;
+                    changed = true;
+                }
+                if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
+                // Sample options (only meaningful when enabled)
+                if (ImGui::MenuItem("2x", nullptr, enabled && g_msaaSamples == 2))
+                {
+                    g_fMsaa = true;
+                    g_msaaSamples = 2;
+                    changed = true;
+                }
+                if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
+                if (ImGui::MenuItem("4x", nullptr, enabled && g_msaaSamples == 4))
+                {
+                    g_fMsaa = true;
+                    g_msaaSamples = 4;
+                    changed = true;
+                }
+                if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
+                if (ImGui::MenuItem("8x", nullptr, enabled && g_msaaSamples == 8))
+                {
+                    g_fMsaa = true;
+                    g_msaaSamples = 8;
+                    changed = true;
+                }
+                if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
+                if (ImGui::MenuItem("16x", nullptr, enabled && g_msaaSamples == 16))
+                {
+                    g_fMsaa = true;
+                    g_msaaSamples = 16;
+                    changed = true;
+                }
+                if (ImGui::IsItemHovered()) g_fDisableInput = true;
+
+                // Apply + rebuild FBOs
+                if (changed)
+                    ApplyMsaaSettings();
+
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::MenuItem("V Sync", nullptr, g_fVsync))
+            {
+                g_fVsync = !g_fVsync;
+                glfwSwapInterval(g_fVsync ? 1 : 0);
+            }
+
             if (g_pcm != nullptr)
-                ImGui::SliderFloat("Draw Distance", &g_pcm->rMRDAdjust, baseRenderDistance, 4.0f);
+            {
+                ImGui::SliderFloat("Draw Distance", &g_pcm->rMRDAdjust, baseRenderDistance, 2.5f);
+
+                // Disable game input while slider is being interacted with
+                if (ImGui::IsItemActive() || ImGui::IsItemHovered())
+                    g_fDisableInput = true;
+            }
 
             if (ImGui::IsItemClicked) g_fDisableInput = true;
 
@@ -302,7 +371,7 @@ void ExportSw()
                 model[3][1] = alo->xf.posWorld.y;
                 model[3][2] = alo->xf.posWorld.z;
                 model = model * *glob.pdmat;
-            } 
+            }
 
             glm::mat4 finalModel = zUpToYUp * model;
             glm::mat3 normalMat = glm::mat3(glm::transpose(glm::inverse(finalModel)));
@@ -755,7 +824,7 @@ MaterialCPU ProcessGlobLightingCPU(const glm::vec3& vertexColorRGB, float object
 MaterialCPU EvaluateLightingAtPointCPU(const glm::vec3& worldPos, const glm::vec3& normalWorld, const glm::vec3& vertexColorRGB, float unSelfIllum)
 {
     // ==== InitGlobLighting() ====
-    float objectShadow  = g_psw->lsmDefault.uShadow;
+    float objectShadow = g_psw->lsmDefault.uShadow;
     float objectMidtone = g_psw->lsmDefault.uMidtone + unSelfIllum * 0.000031f;
     glm::vec3 lightAccum(0.0f);
 
@@ -773,13 +842,13 @@ MaterialCPU EvaluateLightingAtPointCPU(const glm::vec3& worldPos, const glm::vec
 
             float diffuse = NdotL + NdotL * NdotL * NdotL;
 
-            float shadow    = glm::max(diffuse * plight->ltfn.ruShadow    + plight->ltfn.duShadow, 0.0f);
-            float midtone   = glm::max(diffuse * plight->ltfn.ruMidtone   + plight->ltfn.duMidtone, 0.0f);
+            float shadow = glm::max(diffuse * plight->ltfn.ruShadow + plight->ltfn.duShadow, 0.0f);
+            float midtone = glm::max(diffuse * plight->ltfn.ruMidtone + plight->ltfn.duMidtone, 0.0f);
             float highlight = glm::max(diffuse * plight->ltfn.ruHighlight + plight->ltfn.duHighlight, 0.0f);
 
-            objectShadow  += shadow;
+            objectShadow += shadow;
             objectMidtone += midtone;
-            lightAccum    += glm::vec3(plight->rgbaColor) * highlight;
+            lightAccum += glm::vec3(plight->rgbaColor) * highlight;
         }
         else if (plight->lightk == LIGHTK_Position)
         {
@@ -797,13 +866,13 @@ MaterialCPU EvaluateLightingAtPointCPU(const glm::vec3& worldPos, const glm::vec
 
                 float att = glm::clamp(plight->agFallOff.x + plight->agFallOff.y * invLen, 0.0f, 1.0f);
 
-                float shadow    = glm::max(diffuse * plight->ltfn.ruShadow    + plight->ltfn.duShadow, 0.0f)    * att;
-                float midtone   = glm::max(diffuse * plight->ltfn.ruMidtone   + plight->ltfn.duMidtone, 0.0f)   * att;
+                float shadow = glm::max(diffuse * plight->ltfn.ruShadow + plight->ltfn.duShadow, 0.0f) * att;
+                float midtone = glm::max(diffuse * plight->ltfn.ruMidtone + plight->ltfn.duMidtone, 0.0f) * att;
                 float highlight = glm::max(diffuse * plight->ltfn.ruHighlight + plight->ltfn.duHighlight, 0.0f) * att;
 
-                objectShadow  += shadow;
+                objectShadow += shadow;
                 objectMidtone += midtone;
-                lightAccum    += glm::vec3(plight->rgbaColor) * highlight;
+                lightAccum += glm::vec3(plight->rgbaColor) * highlight;
             }
         }
         plight = plight->dleLight.plightNext;
@@ -836,17 +905,17 @@ glm::vec4 ComputeBakedVertexColorThreeWay(const SUBGLOB& sub, const glm::mat4& m
     float u = glm::clamp(uv.x, 0.0f, 1.0f);
     float vv = glm::clamp(uv.y, 0.0f, 1.0f);
 
-    glm::vec4 shCol  = SampleRGBA8(bmp->shadowTexture,   w, h, u, vv, glm::vec4(0.0f));
-    glm::vec4 difCol = SampleRGBA8(bmp->diffuseTexture,  w, h, u, vv, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    glm::vec4 shCol = SampleRGBA8(bmp->shadowTexture, w, h, u, vv, glm::vec4(0.0f));
+    glm::vec4 difCol = SampleRGBA8(bmp->diffuseTexture, w, h, u, vv, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     glm::vec4 satCol = SampleRGBA8(bmp->saturateTexture, w, h, u, vv, glm::vec4(0.0f));
 
-    glm::vec3 shRGB  = glm::vec3(shCol);
+    glm::vec3 shRGB = glm::vec3(shCol);
     glm::vec3 difRGB = glm::vec3(difCol);
     glm::vec3 satRGB = glm::vec3(satCol);
 
     // Same mix as the pixel baker
     glm::vec3 finalRGB(0.0f);
-    finalRGB += shRGB  * m.ambient;
+    finalRGB += shRGB * m.ambient;
     finalRGB += difRGB * m.midtone;
     finalRGB += satRGB * m.light;
     finalRGB = glm::clamp(finalRGB, 0.0f, 1.0f);
@@ -1509,35 +1578,43 @@ void ExportTextures()
     for (size_t i = 0; i < g_ashd.size(); ++i)
     {
         SHD& shd = g_ashd[i];
-        BMP* bmp = shd.atex[0].abmp[0];
 
-        if (bmp != nullptr)
+        for (size_t t = 0; t < shd.atex.size(); ++t)
         {
-            if (bmp->shadowTexture.size() > 0)
-            {
-                char filenameShadow[256];
-                snprintf(filenameShadow, sizeof(filenameShadow), "%s/shader_%03zu_shadow.png", textureDir.c_str(), i);
-                stbi_flip_vertically_on_write(1);
-                stbi_write_png(filenameShadow, bmp->bmpWidth, bmp->bmpHeight, 4, bmp->shadowTexture.data(), bmp->bmpWidth * 4);
-                stbi_flip_vertically_on_write(0);
-            }
+            TEX& tex = shd.atex[t];
 
-            if (bmp->diffuseTexture.size() > 0)
+            for (size_t f = 0; f < tex.abmp.size(); ++f)
             {
-                char filenameDiffuse[256];
-                snprintf(filenameDiffuse, sizeof(filenameDiffuse), "%s/shader_%03zu_diffuse.png", textureDir.c_str(), i);
-                stbi_flip_vertically_on_write(1);
-                stbi_write_png(filenameDiffuse, bmp->bmpWidth, bmp->bmpHeight, 4, bmp->diffuseTexture.data(), bmp->bmpWidth * 4);
-                stbi_flip_vertically_on_write(0);
-            }
+                BMP* bmp = tex.abmp[f];
 
-            if (bmp->saturateTexture.size() > 0)
-            {
-                char filenameSaturate[256];
-                snprintf(filenameSaturate, sizeof(filenameSaturate), "%s/shader_%03zu_saturate.png", textureDir.c_str(), i);
-                stbi_flip_vertically_on_write(1);
-                stbi_write_png(filenameSaturate, bmp->bmpWidth, bmp->bmpHeight, 4, bmp->saturateTexture.data(), bmp->bmpWidth * 4);
-                stbi_flip_vertically_on_write(0);
+                if (bmp == nullptr)
+                    continue;
+
+                char filename[512];
+
+                if (!bmp->shadowTexture.empty())
+                {
+                    snprintf(filename, sizeof(filename), "%s/shader_%03zu_tex_%02zu_frame_%02zu_shadow.png",textureDir.c_str(), i, t, f);
+                    stbi_flip_vertically_on_write(1);
+                    stbi_write_png(filename, bmp->bmpWidth, bmp->bmpHeight, 4, bmp->shadowTexture.data(), bmp->bmpWidth * 4);
+                    stbi_flip_vertically_on_write(0);
+                }
+
+                if (!bmp->diffuseTexture.empty())
+                {
+                    snprintf(filename, sizeof(filename), "%s/shader_%03zu_tex_%02zu_frame_%02zu_diffuse.png", textureDir.c_str(), i, t, f);
+                    stbi_flip_vertically_on_write(1);
+                    stbi_write_png(filename, bmp->bmpWidth, bmp->bmpHeight, 4, bmp->diffuseTexture.data(), bmp->bmpWidth * 4);
+                    stbi_flip_vertically_on_write(0);
+                }
+
+                if (!bmp->saturateTexture.empty())
+                {
+                    snprintf(filename, sizeof(filename), "%s/shader_%03zu_tex_%02zu_frame_%02zu_saturate.png", textureDir.c_str(), i, t, f);
+                    stbi_flip_vertically_on_write(1);
+                    stbi_write_png(filename, bmp->bmpWidth, bmp->bmpHeight, 4, bmp->saturateTexture.data(), bmp->bmpWidth * 4);
+                    stbi_flip_vertically_on_write(0);
+                }
             }
         }
     }
@@ -1549,10 +1626,11 @@ void ExportTextures()
         if (!bmp || bmp->diffuseTexture.empty())
             continue;
 
-        char filename[256];
+        char filename[512];
         snprintf(filename, sizeof(filename), "%s/font_%03zu.png", textureDir.c_str(), i);
 
-        stbi_write_png(filename, bmp->bmpWidth, bmp->bmpHeight, 4, bmp->diffuseTexture.data(), bmp->bmpWidth * 4);
+        stbi_write_png(filename, bmp->bmpWidth, bmp->bmpHeight, 4,
+            bmp->diffuseTexture.data(), bmp->bmpWidth * 4);
     }
 }
 

@@ -137,6 +137,7 @@ std::string get_file_contents(const char* filename)
 }
 
 GLSHADER glScreenShader;
+GLSHADER glDyshadow;
 GLSHADER glGlobShader;
 GLSHADER glCelBorderShader;
 GLSHADER glGeomShader;

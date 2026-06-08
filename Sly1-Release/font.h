@@ -3,7 +3,7 @@
 #include "shd.h"
 #include "gl.h"
 
-enum JH 
+enum JH
 {
     JH_Nil = -1,
     JH_Left = 0,
@@ -11,7 +11,7 @@ enum JH
     JH_Right = 2,
     JH_Max = 3
 };
-enum JV 
+enum JV
 {
     JV_Nil = -1,
     JV_Top = 0,
@@ -38,17 +38,17 @@ struct CTextBox
 
     void SetPos(float x, float y);
     void SetSize(float dx, float dy);
-    void SetTextColor(glm::vec4 *rgba);
+    void SetTextColor(glm::vec4* rgba);
     void SetHorizontalJust(JH jh);
     void SetVerticalJust(JV jv);
 };
 
 class CTextEdge
 {
-    public:
+public:
 
     // Pointer to the font used for rendering the edge (glyph outlines or shadows)
-    struct CFontBrx *m_pfont;
+    struct CFontBrx* m_pfont;
     // Character to draw the edge for (usually a single glyph)
     char  m_ch;
     // Extra horizontal offset (in pixels or units) to apply to the glyph's position for the edge effect
@@ -64,7 +64,7 @@ class CTextEdge
 
     void SetPos(float x, float y);
     void SetSize(float dx, float dy);
-    void SetTextColor(glm::vec4 *rgba);
+    void SetTextColor(glm::vec4* rgba);
     void SetHorizontalJust(JH jh);
     void SetVerticalJust(JV jv);
 };
@@ -117,46 +117,46 @@ struct CFont
 
 class CFontBrx : public CFont
 {
-        public:
+public:
 
-        // Ptr to font texture
-        struct BMP  *m_pbmp;
-        struct CLUT *m_pclut;
+    // Ptr to font texture
+    struct BMP* m_pbmp;
+    struct CLUT* m_pclut;
 
-        // Number of glyffs
-        int m_cglyff;
-        std::unordered_map<uint16_t, GLYFF> m_aglyff;
+    // Number of glyffs
+    int m_cglyff;
+    std::unordered_map <uint16_t, GLYFF> m_aglyff;
 
-        uint32_t m_grffont;
+    uint32_t m_grffont;
 
-        // Loads glyff data
-        void LoadFromBrx(CBinaryInputStream *pbis);
-        void PostLoad();
-        // Returns a glyff from glyff buffer
-        GLYFF* PglyffFromCh(char ch);
-        // Calculates and returns the total width of a string
-        float DxFromPchz(char *pchz);
-        float DxFromCh(char ch);
-        CFontBrx* PfontClone(float rx, float ry);
-        void FValid(char ch);
-        void SetupDraw();
-        float DxDrawCh(char ch, float xChar, float yChar, glm::vec4 &rgba);
-        void EdgeRect(CTextEdge* pte, CTextBox* ptbx);
-        void PushScaling(float rx, float ry);
-        void CopyTo(CFontBrx *pfontDst);
-        void GetExtents(char *pchz, float* pdx, float* pdy, float dxMax);
-        void PopScaling();
-        int  ClineWrapPchz(char *pchz, float dx);
-        float DxMaxLine(char *pchz);
-        float DyWrapPchz(char* pchz, float dx);
-        void DrawPart(float x0, float y0, float x1, float y1, float s0, float t0, float s1, float t1, glm::vec4 &color);
-        void DrawPchz(char* pchz, CTextBox* ptbx);
-        void CleanUpDraw();
+    // Loads glyff data
+    void LoadFromBrx(CBinaryInputStream* pbis);
+    void PostLoad();
+    // Returns a glyff from glyff buffer
+    GLYFF* PglyffFromCh(char ch);
+    // Calculates and returns the total width of a string
+    float DxFromPchz(char* pchz);
+    float DxFromCh(char ch);
+    CFontBrx* PfontClone(float rx, float ry);
+    void FValid(char ch);
+    void SetupDraw();
+    float DxDrawCh(char ch, float xChar, float yChar, glm::vec4& rgba);
+    void EdgeRect(CTextEdge* pte, CTextBox* ptbx);
+    void PushScaling(float rx, float ry);
+    void CopyTo(CFontBrx* pfontDst);
+    void GetExtents(char* pchz, float* pdx, float* pdy, float dxMax);
+    void PopScaling();
+    int  ClineWrapPchz(char* pchz, float dx);
+    float DxMaxLine(char* pchz);
+    float DyWrapPchz(char* pchz, float dx);
+    void DrawPart(float x0, float y0, float x1, float y1, float s0, float t0, float s1, float t1, glm::vec4& color);
+    void DrawPchz(char* pchz, CTextBox* ptbx);
+    void CleanUpDraw();
 };
 
 class CRichText
 {
-    public:
+public:
 
     char* m_achz;
     char* m_pchCur;
@@ -181,16 +181,16 @@ class CRichText
     void  Draw(CTextBox* ptbx);
 };
 
-void RenderGlyphQuad(float x, float y, float w, float h, float u0, float v0, float u1, float v1, const glm::vec4 &color);
+void RenderGlyphQuad(float x, float y, float w, float h, float u0, float v0, float u1, float v1, const glm::vec4& color);
 
 // Number of fonts in binary file
 extern int g_cfontBrx;
 // Font property's
 extern std::vector <CFontBrx> g_afontBrx;
 
-extern CFontBrx *g_pfont;
-extern CFontBrx *g_pfontScreenCounters;
-extern CFontBrx *g_pfontJoy;
+extern CFontBrx* g_pfont;
+extern CFontBrx* g_pfontScreenCounters;
+extern CFontBrx* g_pfontJoy;
 
 extern std::vector <CFontBrx*> g_testFontBrx;
 
@@ -201,3 +201,4 @@ extern GLuint u_modelLoc;
 extern GLuint uvRectLoc;
 extern GLuint blotColorLoc;
 extern GLuint whiteTex;
+extern uint64_t whiteHandle;

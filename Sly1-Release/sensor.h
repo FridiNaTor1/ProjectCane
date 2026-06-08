@@ -159,6 +159,7 @@ void BindLasen(LASEN* plasen);
 void PostLasenLoad(LASEN* plasen);
 void UpdateLasen(LASEN* plasen, float dt);
 void SetLasenSensors(LASEN* plasen, SENSORS sensors);
+void FreezeLasen(LASEN* plasen, int fFreeze);
 void RenderLasenSelf(LASEN* plasen, CM* pcm, RO* pro);
 void DeleteLasen(LASEN *plasen);
 
@@ -183,3 +184,4 @@ void DeletePrsen(PRSEN* ppprsen);
 float SCalcLasenShapeExtent(LASEN* plasen, LBEAM* plbeam);
 
 extern SNIP s_asnipLasen[2];
+extern int g_fLasenBusyListChange;

@@ -961,7 +961,7 @@ void SetAloFastShadowDepth(ALO* palo, float sDepth)
 	palo->sFastShadowDepth = sDepth;
 }
 
-void SetAloCastShadow(ALO* palo, int fCastShadow)
+void SetAloCastShadow(ALO* palo, byte fCastShadow)
 {
 	if (fCastShadow == 0) {
 		if (palo->pshadow != nullptr) {

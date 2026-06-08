@@ -9,6 +9,8 @@ void UpdateSw(SW* psw, float dt)
 
 void UpdateSwObjects(SW* psw, float dt)
 {
+    //UpdateSwBusyList(psw);
+
     DLI dlBusyWalker;
 
     dlBusyWalker.m_pdl = &psw->dlBusy;
