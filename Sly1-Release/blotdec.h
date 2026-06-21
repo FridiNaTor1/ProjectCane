@@ -33,12 +33,12 @@ struct LETTERBOX;
 struct CREDIT;
 struct DEBUGMENU;
 struct JOY;
-enum PRP;
-enum PRK;
-enum RESPK;
-enum BLOTS;
-enum BLOTK;
-enum UIS;
+enum PRP : int;
+enum PRK : int;
+enum RESPK : int;
+enum BLOTS : int;
+enum BLOTK : int;
+enum UIS : int;
 
 using PFNSMACK = void(*)(void);
 using PFNTN = void(*)(void);

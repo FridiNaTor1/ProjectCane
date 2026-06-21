@@ -25,7 +25,7 @@ enum SGS
 };
 struct SGA 
 {
-    enum OID oidAseg;
+    OID oidAseg;
     struct ASEG* paseg;
 };
 struct SGMAP 

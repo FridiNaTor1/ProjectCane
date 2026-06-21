@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-enum PRP
+enum PRP : int
 {
     PRP_Nil = -1,
     PRP_Basic = 0,
@@ -9,7 +9,7 @@ enum PRP
     PRP_Cd = 2,
     PRP_Max = 3
 };
-enum RESPK
+enum RESPK : int
 {
     RESPK_Nil = -1,
     RESPK_Yes = 0,
@@ -27,7 +27,7 @@ enum RESPK
     RESPK_SoundOptions = 12,
     RESPK_Max = 13
 };
-enum PRK
+enum PRK : int
 {
     PRK_Nil = -1,
     PRK_PauseMenu = 0,

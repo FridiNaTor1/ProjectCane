@@ -12,7 +12,7 @@ void CBinaryInputStream::Align(int n)
     if (pos % n != 0)
         pos += (uint32_t)(n - (pos % n));
 
-    file.seekg(pos, SEEK_SET);
+    file.seekg(pos, std::ios::beg);
 }
 
 byte CBinaryInputStream::U8Read()
@@ -106,7 +106,7 @@ glm::mat4 CBinaryInputStream::ReadMatrix4()
 void CBinaryInputStream::ReadStringSw()
 {
     short stringLength = U16Read();
-    file.seekg(stringLength, SEEK_CUR);
+    file.seekg(stringLength, std::ios::cur);
 }
 
 void CBinaryInputStream::Close()

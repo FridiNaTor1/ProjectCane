@@ -80,7 +80,7 @@ struct DE
         };
         union
         {
-            OID oid;
+            OID oidEvent;
             OID oidReplace;
         };
         union

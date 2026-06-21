@@ -453,11 +453,15 @@ void BeginFrameStream(STREAM* pstream)
 
 void AppendStream(STREAM* pstream, void* ptr, int size, int copySize)
 {
-	if (pstream->cursor + pstream->stride > pstream->frameSize)
-	{
-		__debugbreak(); // overflow protection
-		return;
-	}
+		if (pstream->cursor + pstream->stride > pstream->frameSize)
+		{
+#ifdef _WIN32
+			__debugbreak(); // overflow protection
+#else
+			__builtin_trap(); // overflow protection
+#endif
+			return;
+		}
 
 	GLsizeiptr off = pstream->frameBase + pstream->cursor;
 	pstream->cursor += pstream->stride;

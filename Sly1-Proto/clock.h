@@ -1,4 +1,6 @@
 #pragma once
+#include <atomic>
+#include <cstdint>
 #include <iostream>
 #include <algorithm>
 #include <chrono>

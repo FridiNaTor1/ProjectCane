@@ -1,4 +1,29 @@
 #include "glshaders.h"
+#include <filesystem>
+
+namespace
+{
+std::string ReadWholeFile(const std::filesystem::path& path)
+{
+	std::ifstream in(path, std::ios::binary);
+	if (!in)
+		return {};
+
+	std::string contents;
+	in.seekg(0, std::ios::end);
+	contents.resize(in.tellg());
+	in.seekg(0, std::ios::beg);
+	in.read(&contents[0], contents.size());
+	if (contents.size() >= 3 &&
+		static_cast<unsigned char>(contents[0]) == 0xEF &&
+		static_cast<unsigned char>(contents[1]) == 0xBB &&
+		static_cast<unsigned char>(contents[2]) == 0xBF)
+	{
+		contents.erase(0, 3);
+	}
+	return contents;
+}
+}
 
 void GLSHADER::Init(const char* vertexFile, const char* geometryFile, const char* fragmentFile)
 {
@@ -121,17 +146,18 @@ void GLSHADER::compileErrors(unsigned int shader, const char* type)
 
 std::string get_file_contents(const char* filename)
 {
-	std::ifstream in(filename, std::ios::binary);
-	if (in)
+	if (std::string contents = ReadWholeFile(filename); !contents.empty())
+		return contents;
+
+#if defined(__linux__)
+	std::error_code ec;
+	const std::filesystem::path executablePath = std::filesystem::read_symlink("/proc/self/exe", ec);
+	if (!ec)
 	{
-		std::string contents;
-		in.seekg(0, std::ios::end);
-		contents.resize(in.tellg());
-		in.seekg(0, std::ios::beg);
-		in.read(&contents[0], contents.size());
-		in.close();
-		return(contents);
+		if (std::string contents = ReadWholeFile(executablePath.parent_path() / filename); !contents.empty())
+			return contents;
 	}
+#endif
 
 	throw(errno);
 }

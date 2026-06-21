@@ -27,6 +27,23 @@ Simple map viewer for sly 1 right now proto and release version
 
 To compile the project, use the instructions below based on your desired target:
 
+### Linux Retail Viewer
+1. Install a C++17 compiler, CMake, OpenGL development files, and GLFW development files. If GLFW is not installed, CMake will try to fetch and build GLFW 3.4 automatically.
+2. Configure and build:
+   ```sh
+   cmake -S . -B build
+   cmake --build build -j
+   ```
+3. Run the viewer:
+   ```sh
+   ./build/projectcane
+   ```
+4. Use **File > Open ISO** to select a retail NTSC Sly 1 ISO. Extracted maps are cached under `~/.cache/projectcane`, then available from **File > Open Extracted Map**.
+   You can also verify/extract from the terminal with:
+   ```sh
+   ./build/projectcane --extract-iso "/path/to/Sly Cooper and the Thievius Raccoonus (USA).iso"
+   ```
+
 ### 🧪 May 19, 2002 Prototype
 1. Place the following shader files in the same directory as the executable (where the project will be built):
    - `blot.vert`

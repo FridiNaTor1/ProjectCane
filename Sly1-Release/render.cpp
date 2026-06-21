@@ -935,14 +935,24 @@ void DrawGlob(RPL* prpl)
 				if (pshd->shdk != SHDK_ThreeWay)
 				{
 					glUniform1i(glslRko, 0);
-					glUniformHandleui64ARB(glslDiffuseMap, pbmp->hDiffuseMap);
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, pbmp->glDiffuseMap);
+					glUniform1i(glslDiffuseMap, 0);
 				}
 				else
 				{
 					glUniform1i(glslRko, 1);
-					glUniformHandleui64ARB(glslAmbientMap,  pbmp->hShadowMap);
-					glUniformHandleui64ARB(glslDiffuseMap,  pbmp->hDiffuseMap);
-					glUniformHandleui64ARB(glslSaturateMap, pbmp->hSaturateMap);
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, pbmp->glShadowMap);
+					glUniform1i(glslAmbientMap, 0);
+
+					glActiveTexture(GL_TEXTURE1);
+					glBindTexture(GL_TEXTURE_2D, pbmp->glDiffuseMap);
+					glUniform1i(glslDiffuseMap, 1);
+
+					glActiveTexture(GL_TEXTURE2);
+					glBindTexture(GL_TEXTURE_2D, pbmp->glSaturateMap);
+					glUniform1i(glslSaturateMap, 2);
 				}
 			}
 		}

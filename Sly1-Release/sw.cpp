@@ -92,9 +92,9 @@ void LoadSwFromBrx(SW* psw, CBinaryInputStream* pbis)
 	// Loads all splice events from binary file
 	LoadSwSpliceFromBrx(psw, pbis);
 	LoadOptionsFromBrx(psw, pbis);
-	pbis->file.seekg(0x20, SEEK_CUR);
-	pbis->file.seekg(pbis->S16Read(), SEEK_CUR);
-	pbis->file.seekg(0x20, SEEK_CUR);
+	pbis->file.seekg(0x20, std::ios::cur);
+	pbis->file.seekg(pbis->S16Read(), std::ios::cur);
+	pbis->file.seekg(0x20, std::ios::cur);
 	// Loads all textures and shader data from file
 	LoadShadersFromBrx(pbis);
 	// Loads all the scene world objects from the binary file

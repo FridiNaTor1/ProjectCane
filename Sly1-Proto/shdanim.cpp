@@ -28,5 +28,5 @@ void PsaaLoadFromBrx(CBinaryInputStream *pbis)
 	uint16_t saakType = pbis->U16Read();
 
     if (saakType != 0)
-        pbis->file.seekg(0x1C, SEEK_CUR);
+        pbis->file.seekg(0x1C, std::ios::cur);
 }

@@ -59,10 +59,10 @@ void LoadDialogEventsFromBrx(DIALOG* pdialog, CBinaryInputStream* pbis, int* pcd
         switch (unk_1)
         {
         case 0:
-            pbis->file.seekg(0x20, SEEK_CUR);
+            pbis->file.seekg(0x20, std::ios::cur);
             break;
         case 7:
-            pbis->file.seekg(0x20, SEEK_CUR);
+            pbis->file.seekg(0x20, std::ios::cur);
             break;
 
         case 1:

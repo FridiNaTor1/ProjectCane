@@ -1,9 +1,14 @@
 #pragma once
 #include "so.h"
 
+enum BWK : int
+{
+    BWK_Nil = -1
+};
+
 struct BARWARP 
 {
-    enum BWK bwk;
+    BWK bwk;
     union
     {
         glm::vec3 pos;

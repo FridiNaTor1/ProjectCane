@@ -1,7 +1,23 @@
 #include "main.h"
+#include "iso_extractor.h"
 
 int main(int cphzArgs, char* aphzArgs[])
 {
+    if (cphzArgs == 3 && std::string(aphzArgs[1]) == "--extract-iso")
+    {
+        IsoExtractionResult result = EnsureSly1RetailIsoExtracted(aphzArgs[2]);
+        std::cout << result.message << "\n";
+
+        if (result.ok)
+        {
+            std::cout << "Cache: " << result.cacheDirectory << "\n";
+            std::cout << "Maps: " << result.levels.size() << "\n";
+            return 0;
+        }
+
+        return 1;
+    }
+
     Startup();
 
     while (!glfwWindowShouldClose(g_gl.window) && fQuitGame != true)

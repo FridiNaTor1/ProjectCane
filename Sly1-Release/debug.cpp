@@ -1,7 +1,36 @@
 #include "debug.h"
 #define  STB_IMAGE_WRITE_IMPLEMENTATION 
 #include <stb/stb_image_write.h>
+#include "iso_extractor.h"
 #include "render.h"
+
+namespace
+{
+std::vector<ExtractedLevel> g_cachedIsoLevels;
+std::filesystem::path g_currentIsoPath;
+std::string g_isoStatus;
+
+void QueueWorldLoad(const std::filesystem::path& worldPath)
+{
+    if (g_psw != nullptr)
+        DeleteWorld(g_psw);
+
+    file = worldPath.string();
+    filePath = worldPath.parent_path().string();
+    levelName = worldPath.stem().string();
+    g_transition.m_fPending = 1;
+}
+
+void CloseCurrentWorld(SW* psw)
+{
+    if (psw != nullptr)
+        DeleteWorld(psw);
+
+    file = "";
+    filePath = "";
+    levelName = "";
+}
+}
 
 void RenderMenuGui(SW* psw)
 {
@@ -25,16 +54,33 @@ void RenderMenuGui(SW* psw)
             else if (ImGui::IsItemHovered())
                 g_fDisableInput = true;
 
-            if (ImGui::MenuItem("Close World"))
+            if (ImGui::MenuItem("Open ISO"))
+                instance_a.Instance()->OpenDialog("ChooseIsoDlgKey", "Choose ISO", ".iso", ".");
+            else if (ImGui::IsItemHovered())
+                g_fDisableInput = true;
+
+            if (!g_cachedIsoLevels.empty() && ImGui::BeginMenu("Open Extracted Map"))
             {
-                if (psw != nullptr)
+                if (ImGui::IsItemHovered())
+                    g_fDisableInput = true;
+
+                for (const ExtractedLevel& level : g_cachedIsoLevels)
                 {
-                    DeleteWorld(psw);
-                    file = "";
-                    filePath = "";
-                    levelName = "";
+                    if (ImGui::MenuItem(level.name.c_str()))
+                        QueueWorldLoad(level.path);
+
+                    if (ImGui::IsItemHovered())
+                        g_fDisableInput = true;
                 }
+
+                ImGui::EndMenu();
             }
+
+            if (!g_isoStatus.empty())
+                ImGui::TextDisabled("%s", g_isoStatus.c_str());
+
+            if (ImGui::MenuItem("Close World"))
+                CloseCurrentWorld(psw);
             else if (ImGui::IsItemHovered())
                 g_fDisableInput = true;
 
@@ -204,31 +250,38 @@ void RenderMenuGui(SW* psw)
         // Handle file selection
         if (instance_a.Instance()->IsOk())
         {
+            QueueWorldLoad(ImGuiFileDialog::Instance()->GetFilePathName());
+        }
 
-            if (psw != nullptr)
-                DeleteWorld(psw);
+        instance_a.Instance()->Close();
+    }
 
-            file = ImGuiFileDialog::Instance()->GetFilePathName();
-            filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
-            std::string tempLevelName = ImGuiFileDialog::Instance()->GetCurrentFileName();
-            levelName.resize(tempLevelName.size() - 4);
+    if (instance_a.Instance()->Display("ChooseIsoDlgKey"))
+    {
+        if (instance_a.Instance()->IsOk())
+        {
+            g_currentIsoPath = ImGuiFileDialog::Instance()->GetFilePathName();
+            IsoExtractionResult result = EnsureSly1RetailIsoExtracted(g_currentIsoPath);
 
-            for (int i = 0; i < tempLevelName.length(); i++)
+            g_isoStatus = result.message;
+            if (result.ok)
             {
-                char temp = tempLevelName[i];
-                if (temp == '.')
-                    break;
-                else
-                    levelName[i] = temp;
+                g_cachedIsoLevels = std::move(result.levels);
+                g_isoStatus += " Select a map from File > Open Extracted Map.";
             }
-
-            g_transition.m_fPending = 1;
+            else
+            {
+                g_cachedIsoLevels.clear();
+            }
         }
 
         instance_a.Instance()->Close();
     }
 
     if (ImGuiFileDialog::Instance()->IsOpened("ChooseFileDlgKey"))
+        g_fDisableInput = true;
+
+    if (ImGuiFileDialog::Instance()->IsOpened("ChooseIsoDlgKey"))
         g_fDisableInput = true;
 }
 
@@ -1639,3 +1692,4 @@ std::string file = "";
 std::string filePath = "";
 std::string levelName = "";
 float baseRenderDistance = 0.0;
+ImGuiFileDialog instance_a;

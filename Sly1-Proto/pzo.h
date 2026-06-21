@@ -4,7 +4,7 @@
 struct GOAD 
 {
 	int coidDialog;
-	enum OID aoidDialog[4];
+	OID aoidDialog[4];
 	int cpdialog;
 	struct DIALOG* apdialog[4];
 	int ipdialog;
@@ -78,9 +78,9 @@ class VAULT : public PO
 		struct XFM* pxfmJt;
 		TMBL atmbl[3];
 		int nCombination;
-		enum OID oidDialogCombo;
+		OID oidDialogCombo;
 		struct DIALOG* pdialogCombo;
-		enum OID oidVolbtnGoad;
+		OID oidVolbtnGoad;
 		struct VOLBTN* pvolbtnGoad;
 		int fGoadStart;
 		GOAD mpgoadkgoad[5];

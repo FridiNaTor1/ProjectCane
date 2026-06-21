@@ -1,5 +1,8 @@
 #include "ctr.h"
 
+#include <algorithm>
+#include <cstring>
+
 void PostCtrLoad(CTR* pctr)
 {
     PostBlotLoad(pctr);
@@ -202,13 +205,21 @@ void DrawCtr(CTR* pctr)
 
     const char* fullText = pctr->achzDraw;
     const char* slash = strchr(fullText, '/');
+    auto CopyText = [](char* dst, size_t dstSize, const char* src, size_t count) {
+        if (dstSize == 0) {
+            return;
+        }
+        size_t cch = std::min(dstSize - 1, count);
+        std::memcpy(dst, src, cch);
+        dst[cch] = '\0';
+    };
 
     if (!slash) {
-        strncpy_s(achzNum, sizeof(achzNum), fullText, _TRUNCATE);
+        CopyText(achzNum, sizeof(achzNum), fullText, std::strlen(fullText));
     }
     else {
         size_t numLen = slash - fullText;
-        strncpy_s(achzNum, sizeof(achzNum), fullText, numLen);
+        CopyText(achzNum, sizeof(achzNum), fullText, numLen);
 
         const char* denomStart = slash + 1;
         size_t denomLen = 0;
@@ -219,7 +230,7 @@ void DrawCtr(CTR* pctr)
         }
         achzDenom[denomLen] = '\0';
 
-        strncpy_s(achzAfter, sizeof(achzAfter), denomStart, _TRUNCATE);
+        CopyText(achzAfter, sizeof(achzAfter), denomStart, std::strlen(denomStart));
     }
 
     // === Measure widths ===

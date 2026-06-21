@@ -11,7 +11,7 @@ struct TMBL
 struct GOAD
 {
 	int coidDialog;
-	enum OID aoidDialog[4];
+	OID aoidDialog[4];
 	int cpdialog;
 	struct DIALOG* apdialog[4];
 	int ipdialog;

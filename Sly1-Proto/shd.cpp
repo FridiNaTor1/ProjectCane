@@ -310,7 +310,7 @@ std::vector <byte> MakeBmp(BMP *pbmp, CBinaryInputStream* pbis)
     int height = pbmp->bmpHeight;
 
     bmpBuffer.resize(width * height);
-    pbis->file.seekg(bufferOff, SEEK_SET);
+    pbis->file.seekg(bufferOff, std::ios::beg);
 
     for (int i = 0; i < width * height; i++)
         bmpBuffer[i] = pbis->U8Read();
@@ -328,7 +328,7 @@ std::vector <byte> MakePallete(CLUT *pclut, CBinaryInputStream* pbis)
 
     palleteBuffer.resize(numColors * colorSize * 4);
 
-    pbis->file.seekg(paletteBuffer, SEEK_SET);
+    pbis->file.seekg(paletteBuffer, std::ios::beg);
 
     for (int i = 0; i < numColors * colorSize * 4; i++)
         palleteBuffer[i] = pbis->U8Read();

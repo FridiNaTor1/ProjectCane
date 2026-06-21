@@ -223,12 +223,12 @@ void LoadAsegEventsFromBrx(CBinaryInputStream* pbis, int fFrame)
         case 0x19:
             pbis->S16Read();
             pbis->S16Read();
-            pbis->file.seekg(0x20, SEEK_CUR);
+            pbis->file.seekg(0x20, std::ios::cur);
             break;
         case 0x1A:
             pbis->S16Read();
             pbis->S16Read();
-            pbis->file.seekg(0x20, SEEK_CUR);
+            pbis->file.seekg(0x20, std::ios::cur);
             break;
         case 0x1B:
             pbis->U8Read();
@@ -260,10 +260,10 @@ void LoadAsegEventsFromBrx(CBinaryInputStream* pbis, int fFrame)
             pbis->U16Read();
             break;
         case 0x2C:
-            pbis->file.seekg(0x20, SEEK_CUR);
+            pbis->file.seekg(0x20, std::ios::cur);
             break;
         case 0x33:
-            pbis->file.seekg(0x20, SEEK_CUR);
+            pbis->file.seekg(0x20, std::ios::cur);
             break;
         case 0x2E:
             pbis->S16Read();

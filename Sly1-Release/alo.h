@@ -6,7 +6,7 @@
 #include "shadow.h"
 #include "freeze.h"
 
-enum ACK
+enum ACK : int
 {
 	ACK_Nil = -1,
 	ACK_None = 0,
@@ -38,7 +38,7 @@ enum MTLK : int
 	MTLK_NoFrictionElastic = 11,
 	MTLK_Max = 12
 };
-enum ZONS : unsigned int
+enum ZONS : int
 {
 	ZONS_Nil = -1,
 	ZONS_None = 0,
@@ -46,7 +46,7 @@ enum ZONS : unsigned int
 	ZONS_Dynamic = 2,
 	ZONS_Max = 3
 };
-enum VISS : unsigned int
+enum VISS : int
 {
 	VISS_Nil = -1,
 	VISS_None = 0,
@@ -54,7 +54,7 @@ enum VISS : unsigned int
 	VISS_Object = 2,
 	VISS_Max = 3
 };
-enum MRDS : unsigned int
+enum MRDS : int
 {
 	MRDS_Nil = -1,
 	MRDS_None = 0,
@@ -74,7 +74,7 @@ enum SCSK
 	SCSK_Stretch = 1,
 	SCSK_Max = 2
 };
-enum THROBK
+enum THROBK : int
 {
 	THROBK_Nil = -1,
 	THROBK_Pipe = 0,

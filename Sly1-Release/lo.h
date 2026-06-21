@@ -10,7 +10,7 @@
 #include "ctr.h"
 #include "game.h"
 
-enum MSGID
+enum MSGID : int
 {
     MSGID_Nil = -1,
     MSGID_callback = 0,

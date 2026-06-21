@@ -1,6 +1,11 @@
 #pragma once
 #include "step.h"
 
+enum JK : int
+{
+    JK_Nil = -1
+};
+
 enum JBS 
 {
     JBS_Nil = -1,
@@ -114,7 +119,7 @@ class JACKF : public ALO
         struct JEP* ajepRim;
         int cjeGap;
         struct JE* ajeGap;
-        enum JK* aaajk;
+        JK* aaajk;
         float tDrop;
         glm::vec3 dvDrop;
         int c;

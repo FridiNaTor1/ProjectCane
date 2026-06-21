@@ -8,7 +8,7 @@ enum SENSM
     SENSM_DamageTarget = 1,
     SENSM_Max = 2
 };
-enum SENSORS
+enum SENSORS : int
 {
     SENSORS_Nil = -1,
     SENSORS_SenseEnabling = 0,

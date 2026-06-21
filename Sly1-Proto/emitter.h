@@ -62,7 +62,7 @@ enum BLIPRK {
     BLIPRK_NoMirror = 1,
     BLIPRK_Max = 2
 };
-enum ENSK 
+enum ENSK : int
 {
     ENSK_Get = 0,
     ENSK_Set = 1

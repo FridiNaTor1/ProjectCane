@@ -147,8 +147,8 @@ int GetExitSize()
 void LoadExitFromBrx(EXIT* pexit, CBinaryInputStream* pbis)
 {
 	//std::cout << std::hex << pbis->file.tellg()<<"\n";
-	pbis->file.seekg(0x20, SEEK_CUR);
-	pbis->file.seekg(0x20, SEEK_CUR);
+	pbis->file.seekg(0x20, std::ios::cur);
+	pbis->file.seekg(0x20, std::ios::cur);
 	pexit->xf.mat = pbis->ReadMatrix();
 	pexit->xf.pos = pbis->ReadVector();
 
